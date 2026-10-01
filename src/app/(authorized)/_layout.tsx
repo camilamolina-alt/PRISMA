@@ -1,61 +1,131 @@
-import { Redirect } from "expo-router";
-import { Drawer } from "expo-router/drawer";
+import { Redirect, Tabs } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthSession } from "../../providers/AuthProvider";
 
 export default function AuthorizedLayout() {
-  const { token } = useAuthSession();
+  const { token, rol } = useAuthSession();
 
-  // El guardia: sin sesión, al login
   if (!token) {
     return <Redirect href="/login" />;
   }
 
+  const esSupervisor = rol === "supervisor";
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Drawer
+      <Tabs
         screenOptions={{
           headerShown: true,
-          drawerActiveTintColor: "#208AEF",
+          tabBarActiveTintColor: "#208AEF",
+          tabBarInactiveTintColor: "#64748B",
+          tabBarStyle: {
+            backgroundColor: "#FFFFFF",
+            borderTopWidth: 1,
+            borderTopColor: "#E2E8F0",
+            height: 60,
+            paddingBottom: 8,
+            paddingTop: 8,
+          },
+          tabBarLabelStyle: {
+            fontWeight: "600",
+            fontSize: 12,
+          },
         }}
       >
-        <Drawer.Screen
+        <Tabs.Screen
           name="index"
-          options={{ drawerLabel: "Inicio", title: "Inicio" }}
-        />
-        <Drawer.Screen
-          name="perfil"
-          options={{ drawerLabel: "Perfil", title: "Perfil" }}
-        />
-        <Drawer.Screen
-          name="productos"
-          options={{ drawerLabel: "Productos", title: "Productos" }}
-        />
-        <Drawer.Screen
-          name="chat"
-          options={{ drawerLabel: "Chat", title: "Chat" }}
-        />
-        <Drawer.Screen
-          name="histoChat"
           options={{
-            drawerLabel: "Historial de Chat",
-            title: "Historial de Chat",
+            title: "Inicio",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
           }}
         />
-        <Drawer.Screen
+
+        <Tabs.Screen
+          name="productos"
+          options={{
+            title: "Productos",
+            tabBarItemStyle: esSupervisor ? { display: "none" } : undefined,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="cube-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="desempeno"
+          options={{
+            title: "Personal",
+            tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="people-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="perfil"
+          options={{
+            title: "Despacho",
+            tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="map-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: "Comunicación",
+            tabBarItemStyle: esSupervisor ? { display: "none" } : undefined,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="chatbubbles-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
           name="alertas"
-          options={{ drawerLabel: "Alertas", title: "Alertas" }}
+          options={{
+            title: "Alertas",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="notifications-outline" size={size} color={color} />
+            ),
+          }}
         />
-        <Drawer.Screen
+
+        <Tabs.Screen
+          name="histoChat"
+          options={{
+            title: "Reportes",
+            tabBarItemStyle: esSupervisor ? { display: "none" } : undefined,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="document-text-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
           name="ajustes"
-          options={{ drawerLabel: "Ajustes", title: "Ajustes" }}
+          options={{
+            title: "Chats",
+            tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="chatbox-ellipses-outline" size={size} color={color} />
+            ),
+          }}
         />
-        {/* Existe, pero no aparece en el menú */}
-        <Drawer.Screen
+
+        <Tabs.Screen
           name="detalle"
-          options={{ title: "Detalle", drawerItemStyle: { display: "none" } }}
+          options={{
+            href: null,
+          }}
         />
-      </Drawer>
+      </Tabs>
     </GestureHandlerRootView>
   );
 }
