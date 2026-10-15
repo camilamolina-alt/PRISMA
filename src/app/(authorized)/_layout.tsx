@@ -120,6 +120,11 @@ export default function AuthorizedLayout() {
         />
 
         <Tabs.Screen
+          name="tiendas"
+  
+        />
+
+        <Tabs.Screen
           name="detalle"
           options={{
             href: null,
