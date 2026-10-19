@@ -50,7 +50,7 @@ const ALERTS_DATA = [
 export default function AlertCenterScreen() {
   const [selectedFilter, setSelectedFilter] = useState('Todas');
 
-  // helper para definir estilos de la insignia según tipo
+
   const getBadgeStyle = (type) => {
     switch (type) {
       case 'CRÍTICA':

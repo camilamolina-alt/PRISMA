@@ -50,10 +50,10 @@ export default function AuthorizedLayout() {
           name="ajustes"
           options={{ drawerLabel: "Ajustes", title: "Ajustes" }}
         />
-        {/* Existe, pero no aparece en el menú */}
+        
         <Drawer.Screen
           name="detalle"
-          options={{ title: "Detalle", drawerItemStyle: { display: "none" } }}
+          options={{ title: "Detalle", drawerLabel:"Detalle" }}
         />
       </Drawer>
     </GestureHandlerRootView>

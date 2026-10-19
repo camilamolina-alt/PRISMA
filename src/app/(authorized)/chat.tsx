@@ -44,8 +44,26 @@ export default function ChatScreen() {
     ]);
   }, []);
 
+  
+  const receiveFakeMessage = (textMessage?: string) => {
+    const fakeMsg: CustomMessage = {
+      _id: Math.random().toString(36).substring(7), 
+      text: textMessage || 'Mensaje de prueba recibido desde el servidor.',
+      createdAt: new Date(),
+      user: COORDINATOR_USER,
+    };
+
+    setMessages((previousMessages) => GiftedChat.append(previousMessages, [fakeMsg]));
+  };
+
+  
   const onSend = useCallback((newMessages: CustomMessage[] = []) => {
     setMessages((previousMessages) => GiftedChat.append(previousMessages, newMessages));
+
+    // Simula que el coordinador responde después de 1.5 segundos
+    setTimeout(() => {
+      receiveFakeMessage('Recibido Sebastian, quedo atento a cualquier novedad.');
+    }, 1500);
   }, []);
 
   const renderBubble = (props: any) => {
@@ -85,18 +103,16 @@ export default function ChatScreen() {
     return null;
   };
 
-  // 1. Personalizar por completo la barra de entrada del Mockup
   const renderInputToolbar = (props: InputToolbarProps<IMessage>) => {
     return (
       <View style={styles.footerContainer}>
-        {/* Barra ovalada principal */}
         <InputToolbar
           {...props}
           containerStyle={styles.inputToolbarCustom}
           primaryState={props.primaryState}
         />
         
-        {/* 2. Botones Rápidos Inferiores */}
+        {/* Botones Rápidos Inferiores */}
         <View style={styles.quickButtonsContainer}>
           <TouchableOpacity 
             onPress={() => router.push('/histoChat')} 
@@ -105,15 +121,18 @@ export default function ChatScreen() {
             <Text style={styles.quickButtonText}>Historial de chat</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickButton}>
-            <Text style={styles.quickButtonText}>Archivos multimedia</Text>
+          {/* Botón para simular mensaje entrante al hacer tap */}
+          <TouchableOpacity 
+            onPress={() => receiveFakeMessage('📌 Mensaje simulado de prueba.')} 
+            style={styles.quickButton}
+          >
+            <Text style={styles.quickButtonText}>Simular Mensaje</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  // Botón izquierdo (+) dentro de la barra
   const renderActions = (props: any) => {
     return (
       <Actions
@@ -125,7 +144,6 @@ export default function ChatScreen() {
     );
   };
 
-  // Botón derecho (Emoji + Enviar) dentro de la barra
   const renderSend = (props: SendProps<IMessage>) => {
     return (
       <View style={styles.rightActionsRow}>
@@ -159,7 +177,7 @@ export default function ChatScreen() {
           showUserAvatar={true}
           renderUsernameOnMessage={true}
           textInputStyle={styles.textInputStyle}
-          minInputToolbarHeight={120} // Espacio extra asignado para contener los botones inferiores
+          minInputToolbarHeight={120}
         />
       </View>
     </SafeAreaView>
@@ -175,13 +193,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // Contenedor general que acopla la barra y los sub-botones
   footerContainer: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingBottom: 10,
   },
-  // Diseño de cápsula ovalada para el input
   inputToolbarCustom: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
@@ -230,17 +246,16 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#0A3773', // Azul oscuro idéntico al círculo del mockup
+    backgroundColor: '#0A3773',
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendArrow: {
     color: '#FFFFFF',
     fontSize: 14,
-    transform: [{ rotate: '-15deg' }], // Ligera inclinación estética de la flecha
+    transform: [{ rotate: '-15deg' }],
     marginLeft: 2,
   },
-  // Estructura de los botones flotantes inferiores
   quickButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -259,7 +274,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  // Tarjeta superior de reportes del primer mockup
   reportFooter: {
     flexDirection: 'row',
     alignItems: 'center',

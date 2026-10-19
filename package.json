@@ -3,12 +3,13 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
-    "@expo/ui": "~57.0.21",
+    "@expo/ui": "~57.0.25",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/drawer": "^7.14.3",
-    "expo": "~57.0.26",
+    "expo": "~57.0.30",
     "expo-blur": "~57.0.3",
+    "expo-camera": "~57.0.6",
     "expo-constants": "~57.0.20",
     "expo-device": "~57.0.2",
     "expo-document-picker": "~57.0.3",
@@ -17,10 +18,10 @@
     "expo-glass-effect": "~57.0.4",
     "expo-image": "~57.0.5",
     "expo-image-picker": "~57.0.20",
-    "expo-linking": "~57.0.11",
-    "expo-router": "~57.0.24",
-    "expo-sharing": "~57.0.22",
-    "expo-splash-screen": "~57.0.9",
+    "expo-linking": "~57.0.13",
+    "expo-router": "~57.0.28",
+    "expo-sharing": "~57.0.23",
+    "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
@@ -33,6 +34,7 @@
     "react-native-context-menu-view": "^1.21.0",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-gifted-chat": "^3.4.0",
+    "react-native-keyboard-controller": "1.21.9",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
@@ -59,5 +61,10 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "es5-ext@0.10.64": true,
+    "stream-chat@9.53.0": true,
+    "stream-chat-react@14.12.1": true
+  }
 }
