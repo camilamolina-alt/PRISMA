@@ -52,7 +52,7 @@ export default function AuthorizedLayout() {
             options={{
               title: "Inicio",
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="home-outline" size={size} color={color} />
+                <Ionicons name="home-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -63,7 +63,7 @@ export default function AuthorizedLayout() {
             options={{
               title: "Productos",
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="cube-outline" size={size} color={color} />
+                <Ionicons name="cube-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -74,7 +74,7 @@ export default function AuthorizedLayout() {
               title: "Personal",
               tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="people-outline" size={size} color={color} />
+                <Ionicons name="people-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -85,7 +85,7 @@ export default function AuthorizedLayout() {
               title: "Despacho",
               tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="map-outline" size={size} color={color} />
+                <Ionicons name="map-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -96,7 +96,7 @@ export default function AuthorizedLayout() {
               title: "Comunicación",
               tabBarItemStyle: esSupervisor ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="chatbubbles-outline" size={size} color={color} />
+                <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -106,7 +106,7 @@ export default function AuthorizedLayout() {
             options={{
               title: "Alertas",
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="notifications-outline" size={size} color={color} />
+                <Ionicons name="notifications-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -117,7 +117,7 @@ export default function AuthorizedLayout() {
               title: "Reportes",
               tabBarItemStyle: esSupervisor ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="document-text-outline" size={size} color={color} />
+                <Ionicons name="document-text-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -128,16 +128,16 @@ export default function AuthorizedLayout() {
               title: "Chats",
               tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="chatbox-ellipses-outline" size={size} color={color} />
+                <Ionicons name="chatbox-ellipses-outline" size={size} color={color as string} />
               ),
             }}
           />
 
-          {/* Pantallas ocultas: se llega con botones, no desde la barra */}
+          {/* La pantalla oculta que solo se puede acceder por la barra o quickstart */}
           <Tabs.Screen
             name="tiendas"
             options={{
-              href: null,
+              tabBarItemStyle: { display: "none" },
               title: "Tiendas",
               headerLeft: botonVolver,
             }}
@@ -146,7 +146,7 @@ export default function AuthorizedLayout() {
           <Tabs.Screen
             name="detalle"
             options={{
-              href: null,
+              tabBarItemStyle: { display: "none" },
               title: "Detalle de tienda",
               headerLeft: botonVolver,
             }}

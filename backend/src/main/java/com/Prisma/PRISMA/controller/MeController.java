@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @CrossOrigin(origins = "*")
 public class MeController {
 
-    // Lo que le devolvemos a la app (sin la contraseña, ojo)
+
     public record MeResponse(String nombre, String correo, String rol) {
     }
 

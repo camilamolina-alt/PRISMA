@@ -1,5 +1,7 @@
 import { Feather, FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { API_URL } from "../../config/api";
@@ -47,80 +49,98 @@ export default function Detalle() {
 
   if (!id) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-4">
-        <Text className="text-gray-400">Selecciona una tienda desde la lista</Text>
+      <View className="flex-1 items-center justify-center bg-[#F5F4FB] px-4">
+        <Text className="text-[15px] text-[#6B6787]">Selecciona una tienda desde la lista</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-white px-4 pt-12">
+    <ScrollView className="flex-1 bg-[#F5F4FB]">
+      <StatusBar style="light" />
+
+      {/* Header iridiscente: buscador + titulo (mismo degradado del inicio) */}
+      <LinearGradient
+        colors={["#4636A8", "#5743C2", "#4F6FD0", "#3F96C4"]}
+        locations={[0, 0.45, 0.8, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ paddingHorizontal: 16, paddingTop: 52, paddingBottom: 22 }}
+      >
       <View className="mb-6 flex-row items-center space-x-3">
-        <View className="flex-1 flex-row items-center rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm">
-          <Feather name="search" size={20} color={"#9ca3af"}/>
+        <View className="flex-1 flex-row items-center rounded-full border border-[#FFFFFF40] bg-[#FFFFFF26] px-4 py-2">
+          <Feather name="search" size={20} color={"#E2DDFB"}/>
           <TextInput
           placeholder="Buscar..."
-          placeholderTextColor={"#9ca3af"}
-          className="ml-2 flex-1 text-base text-gray-800"/>
+          placeholderTextColor={"#E2DDFB"}
+          className="ml-2 h-10 flex-1 text-[17px] text-white"/>
         </View>
-        <Pressable className="rounded-2xl bg-sky-700 p-3 items-center justify-center">
+        <Pressable className="rounded-2xl border border-[#FFFFFF40] bg-[#FFFFFF26] p-3 items-center justify-center">
           <Ionicons name="filter" size={22} color={"white"}/>
         </Pressable>
       </View>
 
-      <Text className="mb-3 text-xl font-bold text-sky-950">
+      <Text className="text-2xl font-bold text-white">
         Gestion de tienda
       </Text>
+      </LinearGradient>
 
-      {error && <Text className="mb-3 text-red-600">{error}</Text>}
+      <View className="px-4 pt-6">
 
-      <View className="relative mb-6 rounded-2xl bg-white p-5 border border-gray-100 shadow-sm">
+      {error && <Text className="mb-3 text-[15px] font-medium text-[#DC2626]">{error}</Text>}
+
+      <View className="relative mb-6 rounded-2xl bg-white p-5 border border-[#E4E2EE] shadow-sm">
         {/* ESTÁTICO por ahora */}
-        <View className="absolute right-0 top-0 rounded-bl-xl rounded-tr-2xl bg-sky-100 px-3 py-1">
-          <Text className="text-xs font-medium text-sky-800">En ruta</Text>
+        <View className="absolute right-0 top-0 rounded-bl-xl rounded-tr-2xl border-b border-l border-[#5EEAD4] bg-[#CCFBF1] px-3 py-1">
+          <Text className="text-[13px] font-bold text-[#0F766E]">En ruta</Text>
         </View>
         <View className="mb-4 flex-row items-center space-x-3">
-          <View className="rounded-xl bg-blue-900 p-3">
+          <LinearGradient
+            colors={["#2DD4BF", "#0D9488"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ borderRadius: 14, padding: 12 }}
+          >
             <FontAwesome5 name="store" size={24} color="white" />
-          </View>
-          <Text className="text-lg font-bold text-sky-900 flex-1">
+          </LinearGradient>
+          <Text className="text-lg font-bold text-[#1B1733] flex-1">
             {tienda?.nombre ?? (tienda ? `${tienda.departamento} - ${tienda.ubicacion}` : "Cargando...")}
           </Text>
         </View>
 
         {/* Detalle de Información */}
-        <View className="space-y-3 mb-5">
+        <View className="space-y-4 mb-5">
           <View className="flex-row items-center">
-            <Feather name="user" size={18} color="#6b7280" />
+            <Feather name="user" size={20} color="#6C4CF5" />
             <View className="ml-3">
-              <Text className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                ADMINISTRADOR
+              <Text className="text-[13px] font-medium text-[#6B6787]">
+                Administrador
               </Text>
-              <Text className="text-sm font-medium text-gray-700">
+              <Text className="text-[15px] font-medium text-[#1B1733]">
                 {tienda?.adminis ?? "—"}
               </Text>
             </View>
           </View>
 
           <View className="flex-row items-center">
-            <Feather name="phone" size={18} color="#6b7280" />
+            <Feather name="phone" size={20} color="#0284C7" />
             <View className="ml-3">
-              <Text className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                TELÉFONO
+              <Text className="text-[13px] font-medium text-[#6B6787]">
+                Teléfono
               </Text>
-              <Text className="text-sm font-medium text-gray-700">
+              <Text className="text-[15px] font-medium text-[#1B1733]">
                 {tienda?.fono ?? "—"}
               </Text>
             </View>
           </View>
 
           <View className="flex-row items-start">
-            <Ionicons name="location-outline" size={20} color="#6b7280" />
+            <Ionicons name="location-outline" size={22} color="#0D9488" />
             <View className="ml-3 flex-1">
-              <Text className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                DIRECCIÓN
+              <Text className="text-[13px] font-medium text-[#6B6787]">
+                Dirección
               </Text>
-              <Text className="text-sm font-medium text-gray-700">
+              <Text className="text-[15px] font-medium text-[#1B1733]">
                 {tienda?.direccion ?? "—"}
               </Text>
             </View>
@@ -129,51 +149,54 @@ export default function Detalle() {
 
         {/* Botón Ver en el Mapa */}
         <Pressable
-          className="flex-row items-center justify-center rounded-xl bg-sky-100 py-3"
+          className="flex-row items-center justify-center rounded-xl bg-[#0D9488] py-3.5"
           onPress={abrirMapa}
         >
-          <MaterialIcons name="map" size={20} color="#0369a1" />
-          <Text className="ml-2 text-sm font-semibold text-sky-700">
+          <MaterialIcons name="map" size={20} color="white" />
+          <Text className="ml-2 text-[15px] font-semibold text-white">
             Ver en el Mapa
           </Text>
         </Pressable>
       </View>
 
       {/* Título Estadística */}
-      <Text className="mb-3 text-xl font-bold text-sky-950">
+      <Text className="mb-3 text-lg font-bold text-[#1B1733]">
         Estadística de zona
       </Text>
 
       {/* Tarjeta Cumplimiento de tareas: ESTÁTICO por ahora */}
-      <View className="relative mb-4 overflow-hidden rounded-2xl bg-blue-900 p-5 shadow-sm">
-        <Text className="text-base font-semibold text-white">
+      <LinearGradient
+        colors={["#5743C2", "#4F6FD0", "#3F96C4"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ marginBottom: 16, overflow: "hidden", borderRadius: 16, padding: 20 }}
+      >
+        <Text className="text-base font-semibold text-[#EEEBFF]">
           Cumplimiento de tareas
         </Text>
         <Text className="mt-2 text-5xl font-extrabold text-white">95%</Text>
-        
+
         {/* Marca de agua / Icono de Check */}
         <View className="absolute -right-4 -bottom-4 opacity-20">
           <Ionicons name="checkmark-circle" size={120} color="white" />
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Tarjeta Alertas stock crítico: el número es REAL */}
-      <View className="mb-8 rounded-2xl bg-green-300 p-5 shadow-sm">
-        <Text className="text-base font-semibold text-emerald-950">
+      <View className="mb-8 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-5">
+        <Text className="text-base font-semibold text-[#991B1B]">
           Alertas stock crítico
         </Text>
-        <Text className="mt-1 text-5xl font-extrabold text-emerald-950">
+        <Text className="mt-1 text-5xl font-extrabold text-[#DC2626]">
           {String(tienda?.alertasCriticas ?? 0).padStart(2, "0")}
         </Text>
-        
+
         {/* Comparación con ayer: ESTÁTICO por ahora */}
         <View className="mt-3 flex-row items-center">
-          <Feather name="trending-down" size={20} color="#064e3b" />
-          <Text className="ml-2 text-xs font-semibold text-emerald-900">
-            Reduccion de 5% en comparacion a ayer
-          </Text>
-        </View>
-        
+          <Feather name="trending-down" size={20} color="#22C55E" />
+         </View>
+
+      </View>
       </View>
     </ScrollView>
   );
