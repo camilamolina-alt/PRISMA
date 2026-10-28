@@ -1,3 +1,4 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -44,7 +45,6 @@ export default function ChatScreen() {
     ]);
   }, []);
 
-  
   const receiveFakeMessage = (textMessage?: string) => {
     const fakeMsg: CustomMessage = {
       _id: Math.random().toString(36).substring(7), 
@@ -56,16 +56,43 @@ export default function ChatScreen() {
     setMessages((previousMessages) => GiftedChat.append(previousMessages, [fakeMsg]));
   };
 
-  
   const onSend = useCallback((newMessages: CustomMessage[] = []) => {
     setMessages((previousMessages) => GiftedChat.append(previousMessages, newMessages));
 
-    // Simula que el coordinador responde después de 1.5 segundos
     setTimeout(() => {
       receiveFakeMessage('Recibido Sebastian, quedo atento a cualquier novedad.');
     }, 1500);
   }, []);
+// para seleccionar fotos
+  const handlePickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
+    if (!permissionResult.granted) {
+      alert('Se requieren permisos para acceder a la galería de fotos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedImageUri = result.assets[0].uri;
+
+      
+      const imageMessage: CustomMessage = {
+        _id: Math.random().toString(36).substring(7),
+        createdAt: new Date(),
+        user: USER_ME,
+        image: selectedImageUri,
+      };
+
+      onSend([imageMessage]);
+    }
+  };
+  //hasta aca
   const renderBubble = (props: any) => {
     return (
       <Bubble
@@ -112,7 +139,6 @@ export default function ChatScreen() {
           primaryState={props.primaryState}
         />
         
-        {/* Botones Rápidos Inferiores */}
         <View style={styles.quickButtonsContainer}>
           <TouchableOpacity 
             onPress={() => router.push('/histoChat')} 
@@ -121,7 +147,6 @@ export default function ChatScreen() {
             <Text style={styles.quickButtonText}>Historial de chat</Text>
           </TouchableOpacity>
 
-          {/* Botón para simular mensaje entrante al hacer tap */}
           <TouchableOpacity 
             onPress={() => receiveFakeMessage('📌 Mensaje simulado de prueba.')} 
             style={styles.quickButton}
@@ -133,13 +158,14 @@ export default function ChatScreen() {
     );
   };
 
+  // ➕ CONEXIÓN DE LA ACCIÓN AL BOTÓN "+"
   const renderActions = (props: any) => {
     return (
       <Actions
         {...props}
         containerStyle={styles.actionsContainer}
         icon={() => <Text style={styles.plusIcon}>⊕</Text>}
-        onPressActionButton={() => console.log('Acción extra')}
+        onPressActionButton={handlePickImage}
       />
     );
   };
