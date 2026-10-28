@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/usuarios/**").permitAll()
                         .requestMatchers("/api/tiendas/**").authenticated()
                         .requestMatchers("/api/me").authenticated()
+                        .requestMatchers("/api/chat/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults());
 

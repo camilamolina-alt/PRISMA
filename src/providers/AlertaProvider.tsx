@@ -65,7 +65,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
   const recargar = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/stock/critico`, {
+      const res = await fetch(`${API_URL}/api/stock/criticos`, {
         headers: { Authorization: token },
       });
       if (!res.ok) return;
@@ -99,15 +99,16 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
 
     const client = new Client({
       brokerURL: WS_URL,
-      reconnectDelay: 3000,
+      connectHeaders: { Authorization: token },
+      reconnectDelay: 5000,
       onConnect: () => {
         setConectado(true);
         client.subscribe("/topic/alertas", (msg) => {
           // Ventana de aviso nativa para confirmar que llegó
           if (Platform.OS === "web") {
-            window.alert("⚠️ ¡Alerta Crítica Recibida!: " + msg.body);
+            window.alert("¡Alerta Crítica Recibida!: " + msg.body);
           } else {
-            Alert.alert("⚠️ Alerta Crítica Recibida", msg.body);
+            Alert.alert(" Alerta Crítica Recibida", msg.body);
           }
 
           try {

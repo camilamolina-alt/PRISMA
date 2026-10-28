@@ -10,7 +10,7 @@ export type Alerta = {
   nueva: boolean;
 };
 
-// Datos de mentira (los 3 primeros salen del mockup)
+// Datos de mentira 
 export const alertasMock: Alerta[] = [
   {
     id: "1",

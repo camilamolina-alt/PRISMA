@@ -89,17 +89,24 @@ export default function AuthorizedLayout() {
               ),
             }}
           />
-
           <Tabs.Screen
             name="chat"
             options={{
-              title: "Comunicación",
-              tabBarItemStyle: esSupervisor ? { display: "none" } : undefined,
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
-              ),
-            }}
-          />
+            title: "Comunicación",
+            tabBarIcon: ({ color, size }) => (
+      <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
+    ),
+  }}
+/>
+
+        <Tabs.Screen
+          name="conversacion"
+          options={{
+          tabBarItemStyle: { display: "none" },
+          tabBarStyle: { display: "none" },
+          headerShown: false,
+  }}
+/>
 
           <Tabs.Screen
             name="alertas"
@@ -133,6 +140,7 @@ export default function AuthorizedLayout() {
             }}
           />
 
+            
           {/* La pantalla oculta que solo se puede acceder por la barra o quickstart */}
           <Tabs.Screen
             name="tiendas"
@@ -154,5 +162,11 @@ export default function AuthorizedLayout() {
         </Tabs>
       </AlertasProvider>
     </GestureHandlerRootView>
+
+    
   );
+
+
+
+
 }

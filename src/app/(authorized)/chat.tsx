@@ -1,317 +1,151 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Actions, Bubble, GiftedChat, IMessage, InputToolbar, InputToolbarProps, Send, SendProps, User } from 'react-native-gifted-chat';
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { API_URL } from "../../config/api";
+import { useAuthSession } from "../../providers/AuthProvider";
 
-interface CustomMessage extends IMessage {
-  reportTitle?: string;
-  reportSubtitle?: string;
+// Igual que tu ContactosDTO de Java
+type Contacto = {
+  correo: string;
+  nombre: string;
+  rol: string;
+  ultimo: string | null;
+  fecha: string | null;
+  noleido: number;
+};
+
+// horas
+function horaLista(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const hoy = new Date();
+  const ayer = new Date();
+  ayer.setDate(hoy.getDate() - 1);
+  if (d.toDateString() === hoy.toDateString())
+    return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === ayer.toDateString()) return "Ayer";
+  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" });
 }
 
-export default function ChatScreen() {
-  const [messages, setMessages] = useState<CustomMessage[]>([]);
+export default function Chats() {
+  const { token } = useAuthSession();
   const router = useRouter();
+  const [contactos, setContactos] = useState<Contacto[]>([]);
+  const [cargando, setCargando] = useState(false);
 
-  const USER_ME: User = { _id: 1, name: 'Sebastian' };
-  const COORDINATOR_USER: User = { 
-    _id: 2, 
-    name: 'Coordinador', 
-    avatar: 'https://unsplash.com' 
-  };
-
-  useEffect(() => {
-    setMessages([
-      {
-        _id: 3,
-        text: 'Hola jefe, voy a acercarme cuando haga el cambio de tienda, gracias por avisarme. Le envio la fotografia.',
-        createdAt: new Date(),
-        user: USER_ME,
-      },
-      {
-        _id: 2,
-        image: 'https://unsplash.com', 
-        reportTitle: 'Reporte diario',
-        reportSubtitle: 'Falabella Mall Plaza Trebol',
-        createdAt: new Date(),
-        user: USER_ME,
-      },
-      {
-        _id: 1,
-        text: 'Buenos dias Sebastian, necesito que vayas a la tienda MAUI de Mall plaza trebol para ir a buscar P.O.P de temporada otoño/invierno. Podrias enviarme una fotografia del punto actual de Falabella?',
-        createdAt: new Date(),
-        user: COORDINATOR_USER,
-      },
-    ]);
-  }, []);
-
-  
-  const receiveFakeMessage = (textMessage?: string) => {
-    const fakeMsg: CustomMessage = {
-      _id: Math.random().toString(36).substring(7), 
-      text: textMessage || 'Mensaje de prueba recibido desde el servidor.',
-      createdAt: new Date(),
-      user: COORDINATOR_USER,
-    };
-
-    setMessages((previousMessages) => GiftedChat.append(previousMessages, [fakeMsg]));
-  };
-
-  
-  const onSend = useCallback((newMessages: CustomMessage[] = []) => {
-    setMessages((previousMessages) => GiftedChat.append(previousMessages, newMessages));
-
-    // Simula que el coordinador responde después de 1.5 segundos
-    setTimeout(() => {
-      receiveFakeMessage('Recibido Sebastian, quedo atento a cualquier novedad.');
-    }, 1500);
-  }, []);
-
-  const renderBubble = (props: any) => {
-    return (
-      <Bubble
-        {...props}
-        wrapperStyle={{
-          right: { backgroundColor: '#00669B', borderRadius: 15, padding: 4 },
-          left: { backgroundColor: '#D1E4F6', borderRadius: 15, padding: 4 },
-        }}
-        textStyle={{
-          right: { color: '#FFFFFF', fontSize: 13, lineHeight: 18 },
-          left: { color: '#333333', fontSize: 13, lineHeight: 18 },
-        }}
-      />
-    );
-  };
-
-  const renderCustomView = (props: any) => {
-    const { currentMessage } = props;
-    if (currentMessage.reportTitle) {
-      return (
-        <View style={styles.reportFooter}>
-          <View style={styles.iconContainer}>
-            <Text style={{ fontSize: 18, color: '#00669B' }}>📄</Text>
-          </View>
-          <View style={styles.reportTextContainer}>
-            <Text style={styles.reportTitle}>{currentMessage.reportTitle}</Text>
-            <Text style={styles.reportSubtitle}>{currentMessage.reportSubtitle}</Text>
-          </View>
-          <View style={styles.checkmarkContainer}>
-            <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}>✓</Text>
-          </View>
-        </View>
-      );
-    }
-    return null;
-  };
-
-  const renderInputToolbar = (props: InputToolbarProps<IMessage>) => {
-    return (
-      <View style={styles.footerContainer}>
-        <InputToolbar
-          {...props}
-          containerStyle={styles.inputToolbarCustom}
-          primaryState={props.primaryState}
-        />
+  const cargar = useCallback(async () => {
+    if (!token) return;
+    setCargando(true);
+    try {
+      const r = await fetch(`${API_URL}/api/chat/contactos`, {
+        headers: { Authorization: token },
+      });
+      if (r.ok) {
+        const data: Contacto[] = await r.json();
         
-        {/* Botones Rápidos Inferiores */}
-        <View style={styles.quickButtonsContainer}>
-          <TouchableOpacity 
-            onPress={() => router.push('/histoChat')} 
-            style={styles.quickButton}
-          >
-            <Text style={styles.quickButtonText}>Historial de chat</Text>
-          </TouchableOpacity>
+        data.sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""));
+        setContactos(data);
+      }
+    } catch {
+    } finally {
+      setCargando(false);
+    }
+  }, [token]);
 
-          {/* Botón para simular mensaje entrante al hacer tap */}
-          <TouchableOpacity 
-            onPress={() => receiveFakeMessage('📌 Mensaje simulado de prueba.')} 
-            style={styles.quickButton}
-          >
-            <Text style={styles.quickButtonText}>Simular Mensaje</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
-  const renderActions = (props: any) => {
-    return (
-      <Actions
-        {...props}
-        containerStyle={styles.actionsContainer}
-        icon={() => <Text style={styles.plusIcon}>⊕</Text>}
-        onPressActionButton={() => console.log('Acción extra')}
-      />
-    );
-  };
-
-  const renderSend = (props: SendProps<IMessage>) => {
-    return (
-      <View style={styles.rightActionsRow}>
-        <TouchableOpacity style={styles.emojiButton}>
-          <Text style={styles.emojiIcon}>☺</Text>
-        </TouchableOpacity>
-        <Send {...props} containerStyle={styles.sendContainer}>
-          <View style={styles.sendButtonCircle}>
-            <Text style={styles.sendArrow}>➤</Text>
-          </View>
-        </Send>
-      </View>
-    );
-  };
+ 
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [cargar])
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.chatWrapper}>
-        <GiftedChat
-          messages={messages}
-          onSend={(messages) => onSend(messages)}
-          user={USER_ME}
-          renderBubble={renderBubble}
-          renderCustomView={renderCustomView}
-          renderInputToolbar={renderInputToolbar}
-          renderActions={renderActions}
-          renderSend={renderSend}
-          placeholder="Escribe tu consulta aquí..."
-          alwaysShowSend={true}
-          showUserAvatar={true}
-          renderUsernameOnMessage={true}
-          textInputStyle={styles.textInputStyle}
-          minInputToolbarHeight={120}
-        />
-      </View>
-    </SafeAreaView>
+    <FlatList
+      style={s.pantalla}
+      data={contactos}
+      keyExtractor={(c) => c.correo}
+      refreshControl={<RefreshControl refreshing={cargando} onRefresh={cargar} />}
+      ListEmptyComponent={
+        !cargando ? <Text style={s.vacio}>No hay contactos todavía</Text> : null
+      }
+      renderItem={({ item: c }) => (
+        <Pressable
+          style={({ pressed }) => [s.fila, pressed && { backgroundColor: "#F0F2F5" }]}
+          onPress={() =>
+            router.push({
+              pathname: "/conversacion",
+              params: { correo: c.correo, nombre: c.nombre },
+            })
+          }
+        >
+          <View style={s.avatar}>
+            <Text style={s.avatarLetra}>{c.nombre?.[0]?.toUpperCase() ?? "?"}</Text>
+          </View>
+
+          <View style={s.centro}>
+            <View style={s.filaArriba}>
+              <Text style={s.nombre} numberOfLines={1}>{c.nombre}</Text>
+              <Text style={[s.hora, c.noleido > 0 && s.horaNueva]}>{horaLista(c.fecha)}</Text>
+            </View>
+
+            <View style={s.filaAbajo}>
+              <Text
+                style={[s.ultimo, !c.ultimo && s.ultimoVacio]}
+                numberOfLines={1}
+              >
+                {c.ultimo ?? `${c.rol} · toca para chatear`}
+              </Text>
+              {c.noleido > 0 && (
+                <View style={s.globo}>
+                  <Text style={s.globoTexto}>{c.noleido}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </Pressable>
+      )}
+    />
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF', 
+const s = StyleSheet.create({
+  pantalla: { flex: 1, backgroundColor: "#fff" },
+  vacio: { textAlign: "center", color: "#8696A0", marginTop: 40 },
+
+  fila: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10 },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#D1E4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
   },
-  chatWrapper: {
+  avatarLetra: { color: "#0A3773", fontWeight: "700", fontSize: 20 },
+
+  centro: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  footerContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E9EDEF",
     paddingBottom: 10,
   },
-  inputToolbarCustom: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 0,
-    borderWidth: 1,
-    borderColor: '#D4E2F0',
-    borderRadius: 30,
-    height: 50,
-    justifyContent: 'center',
-    marginBottom: 10,
-    shadowColor: 'transparent',
+  filaArriba: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  nombre: { flex: 1, fontSize: 16, fontWeight: "600", color: "#111B21", marginRight: 8 },
+  hora: { fontSize: 12, color: "#667781" },
+  horaNueva: { color: "#0A3773", fontWeight: "600" },
+
+  filaAbajo: { flexDirection: "row", alignItems: "center", marginTop: 3 },
+  ultimo: { flex: 1, fontSize: 14, color: "#667781", marginRight: 8 },
+  ultimoVacio: { fontStyle: "italic", color: "#A0AAB2" },
+  globo: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    backgroundColor: "#0A3773",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  textInputStyle: {
-    color: '#333333',
-    fontSize: 14,
-    marginLeft: 0,
-    paddingTop: 8,
-  },
-  actionsContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-    marginBottom: 0,
-  },
-  plusIcon: {
-    fontSize: 22,
-    color: '#7C93A8',
-  },
-  rightActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  emojiButton: {
-    marginRight: 8,
-    justifyContent: 'center',
-  },
-  emojiIcon: {
-    fontSize: 22,
-    color: '#7C93A8',
-  },
-  sendContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#0A3773',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendArrow: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    transform: [{ rotate: '-15deg' }],
-    marginLeft: 2,
-  },
-  quickButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  quickButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D4E2F0',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  quickButtonText: {
-    color: '#4A5B6D',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  reportFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D1E4F6',
-    padding: 10,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginTop: -5, 
-    width: 250,
-  },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  reportTextContainer: {
-    flex: 1,
-  },
-  reportTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#00669B',
-  },
-  reportSubtitle: {
-    fontSize: 10,
-    color: '#555555',
-  },
-  checkmarkContainer: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#4CD964',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 5,
-  },
+  globoTexto: { color: "#fff", fontSize: 12, fontWeight: "700" },
 });

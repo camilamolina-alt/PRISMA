@@ -42,62 +42,7 @@ function haceTiempo(fecha: string): string {
   return `hace ${Math.floor(h / 24)} d`;
 }
 
-function useAlertas() {
-  const [alertas, setAlertas] = useState<AlertaViva[]>([]);
-  const [conectado, setConectado] = useState(false);
-
-  useEffect(() => {
-    // Reemplaza localhost por la IP de tu PC si pruebas en celular físico
-    const wsUrl = API_URL.replace("http://", "ws://").replace("https://", "wss://") + "/ws";
-
-    const client = new Client({
-      brokerURL: wsUrl,
-      reconnectDelay: 5000,
-      onConnect: () => {
-        setConectado(true);
-        // Suscripción al topic donde el backend envía las alertas críticas
-        client.subscribe("/topic/alertas", (message) => {
-          if (message.body) {
-            const data = JSON.parse(message.body);
-            const nuevaAlerta: AlertaViva = {
-              id: Date.now().toString(),
-              nivel: (data.nivel as NivelAlerta) || "critico",
-              titulo: "Stock Crítico: " + (data.producto || "Producto"),
-              detalle: data.mensaje,
-              fecha: data.fecha || new Date().toISOString(),
-              nueva: true,
-            };
-            setAlertas((prev) => [nuevaAlerta, ...prev]);
-          }
-        });
-      },
-      onDisconnect: () => setConectado(false),
-      onWebSocketError: () => setConectado(false),
-    });
-
-    client.activate();
-
-    return () => {
-      client.deactivate();
-    };
-  }, []);
-
-  const recargar = useCallback(async () => {
-    // Aquí puedes hacer un fetch inicial a tu backend si tienes historial de alertas
-  }, []);
-
-  const marcarLeida = (id: string) => {
-    setAlertas((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, nueva: false } : a))
-    );
-  };
-
-  const marcarTodas = () => {
-    setAlertas((prev) => prev.map((a) => ({ ...a, nueva: false })));
-  };
-
-  return { alertas, conectado, recargar, marcarLeida, marcarTodas };
-}
+import { useAlertas } from "../../providers/AlertaProvider"; // Hook para las alertas 
 
 export default function Alertas() {
   const { alertas: vivas, conectado, recargar, marcarLeida, marcarTodas } =
