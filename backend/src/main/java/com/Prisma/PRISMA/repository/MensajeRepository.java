@@ -1,7 +1,9 @@
 package com.Prisma.PRISMA.repository;
 
 import com.Prisma.PRISMA.model.Mensaje;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,11 +14,23 @@ public interface MensajeRepository extends JpaRepository <Mensaje, Long>{
     @Query("""
 select m from Mensaje m
 where (m.remitente = :yo and m.receptor = :otro)
-or (m.remitente = :otro and m.receptor = : yo)
+or (m.remitente = :otro and m.receptor = :yo)
 order by fecha asc
 """)
 
     List<Mensaje> conversacion(@Param("yo") String yo, @Param("otro") String otro);
     List<Mensaje> findByReceptorAndLeidoFalse(String receptor);
     long countByRemitenteAndReceptorAndLeidoFalse(String remitente, String receptor);
+//Es para un endpoint que conecte con el websocket y avise
+
+  @Modifying
+  @Transactional
+  @Query("""
+    update Mensaje m set m.leido = true
+    where m.remitente = :otro and m.receptor = :yo and m.leido = false
+""")
+  int marcar(@Param("yo")String yo, @Param("otro")String otro);
+
+
+
 }

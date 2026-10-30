@@ -12,9 +12,12 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class ChatController {
@@ -43,5 +46,6 @@ public class ChatController {
         mensajeria.convertAndSendToUser(guardado.getReceptor(), "/queue/mensajes", dto);
         mensajeria.convertAndSendToUser(guardado.getRemitente(), "/queue/mensajes", dto);
     }
+
 
        };

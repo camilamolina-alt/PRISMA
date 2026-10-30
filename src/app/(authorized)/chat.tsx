@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { API_URL } from "../../config/api";
 import { useAuthSession } from "../../providers/AuthProvider";
+import { colorMensajes as C } from "../../theme/colores";
 
 // Igual que tu ContactosDTO de Java
 type Contacto = {
@@ -66,11 +67,11 @@ export default function Chats() {
       keyExtractor={(c) => c.correo}
       refreshControl={<RefreshControl refreshing={cargando} onRefresh={cargar} />}
       ListEmptyComponent={
-        !cargando ? <Text style={s.vacio}>No hay contactos todavía</Text> : null
+        !cargando ? <Text style={s.vacio}>No hay contactos todavía</Text> : undefined
       }
       renderItem={({ item: c }) => (
         <Pressable
-          style={({ pressed }) => [s.fila, pressed && { backgroundColor: "#F0F2F5" }]}
+          style={({ pressed }) => [s.fila, pressed && { backgroundColor: C.fondo }]}
           onPress={() =>
             router.push({
               pathname: "/conversacion",
@@ -110,40 +111,40 @@ export default function Chats() {
 
 const s = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: "#fff" },
-  vacio: { textAlign: "center", color: "#8696A0", marginTop: 40 },
+  vacio: { textAlign: "center", color: C.niebla, marginTop: 40 },
 
   fila: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10 },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#D1E4F6",
+    backgroundColor: C.lila,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
   },
-  avatarLetra: { color: "#0A3773", fontWeight: "700", fontSize: 20 },
+  avatarLetra: { color: C.prismaDark, fontWeight: "700", fontSize: 20 },
 
   centro: {
     flex: 1,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E9EDEF",
+    borderBottomColor: C.borde,
     paddingBottom: 10,
   },
   filaArriba: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  nombre: { flex: 1, fontSize: 16, fontWeight: "600", color: "#111B21", marginRight: 8 },
-  hora: { fontSize: 12, color: "#667781" },
-  horaNueva: { color: "#0A3773", fontWeight: "600" },
+  nombre: { flex: 1, fontSize: 16, fontWeight: "600", color: C.tinta, marginRight: 8 },
+  hora: { fontSize: 12, color: C.niebla },
+  horaNueva: { color: C.prisma, fontWeight: "600" },
 
   filaAbajo: { flexDirection: "row", alignItems: "center", marginTop: 3 },
-  ultimo: { flex: 1, fontSize: 14, color: "#667781", marginRight: 8 },
-  ultimoVacio: { fontStyle: "italic", color: "#A0AAB2" },
+  ultimo: { flex: 1, fontSize: 14, color: C.niebla, marginRight: 8 },
+  ultimoVacio: { fontStyle: "italic", color: C.niebla },
   globo: {
     minWidth: 20,
     height: 20,
     borderRadius: 10,
     paddingHorizontal: 6,
-    backgroundColor: "#0A3773",
+    backgroundColor: C.prisma,
     alignItems: "center",
     justifyContent: "center",
   },

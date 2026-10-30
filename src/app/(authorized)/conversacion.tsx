@@ -1,15 +1,19 @@
+//colores
+import { colorMensajes as C, gradienteMio, iris } from "../../theme/colores";
+
+import {StatusBar} from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Mensaje, useChat } from "../../hooks/useChat";
@@ -30,21 +34,37 @@ function etiquetaDia(iso: string) {
 }
 
 function Burbuja({ m, mio }: { m: Mensaje; mio: boolean }) {
+  // Lo de adentro es igual para las dos; solo cambia el "envase"
+  const contenido = (
+    <>
+      <Text style={[s.texto, mio && s.textoMio]}>{m.contenido}</Text>
+      <View style={s.meta}>
+        <Text style={[s.hora, mio && s.horaMia]}>{hora(m.fecha)}</Text>
+        {mio && (
+          <Ionicons
+            name="checkmark-done"
+            size={16}
+            color={m.leido ? C.leido : "rgba(255,255,255,0.6)"}
+          />
+        )}
+      </View>
+    </>
+  );
+
   return (
     <View style={[s.fila, mio ? s.filaMia : s.filaOtro]}>
-      <View style={[s.burbuja, mio ? s.burbujaMia : s.burbujaOtro]}>
-        <Text style={s.texto}>{m.contenido}</Text>
-        <View style={s.meta}>
-          <Text style={s.hora}>{hora(m.fecha)}</Text>
-          {mio && (
-            <Ionicons
-              name="checkmark-done"
-              size={16}
-              color={m.leido ? "#53BDEB" : "#8696A0"}
-            />
-          )}
-        </View>
-      </View>
+      {mio ? (
+        <LinearGradient
+          colors={gradienteMio}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[s.burbuja, s.burbujaMia]}
+        >
+          {contenido}
+        </LinearGradient>
+      ) : (
+        <View style={[s.burbuja, s.burbujaOtro]}>{contenido}</View>
+      )}
     </View>
   );
 }
@@ -67,12 +87,14 @@ export default function Conversacion() {
     setTexto("");
   };
 
+  //Arriba 
   return (
     <View style={s.pantalla}>
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 8 }]}>
+        <StatusBar style ="dark" />
         <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={C.tinta} />
         </Pressable>
         <View style={s.avatar}>
           <Text style={s.avatarLetra}>{(nombre ?? correo)?.[0]?.toUpperCase()}</Text>
@@ -85,8 +107,14 @@ export default function Conversacion() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+        behavior= "padding">
+          {/* Fondo nácar como el login. pointerEvents="none" para que no bloquee toques */}
+          {/* overflow hidden: sin esto los círculos se salen hacia arriba y tiñen el header */}
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden" }]}>
+            <View style={[s.circulo, { top: -60, left: -90, backgroundColor: iris[1] }]} />
+            <View style={[s.circulo, { top: 240, right: -120, backgroundColor: iris[0] }]} />
+            <View style={[s.circulo, { bottom: 60, left: -100, backgroundColor: iris[6] }]} />
+          </View>
         {/* Mensajes */}
         <FlatList
           data={invertidos}
@@ -120,7 +148,7 @@ export default function Conversacion() {
               value={texto}
               onChangeText={setTexto}
               placeholder="Mensaje"
-              placeholderTextColor="#8696A0"
+              placeholderTextColor={C.niebla}
               multiline
               style={s.input}
             />
@@ -139,46 +167,52 @@ export default function Conversacion() {
 }
 
 const s = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: "#EFEAE2" },
+  pantalla: { flex: 1, backgroundColor: C.fondo },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#0A3773",
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
     paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.borde,
   },
   avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#D1E4F6",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: C.lila,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarLetra: { color: "#0A3773", fontWeight: "700", fontSize: 16 },
-  headerNombre: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  headerEstado: { color: "#C9D6E8", fontSize: 12 },
+  avatarLetra: { color: C.prismaDark, fontWeight: "700", fontSize: 16 },
+  headerNombre: { color: C.tinta, fontSize: 16, fontWeight: "600" },
+  headerEstado: { color: C.niebla, fontSize: 12 },
+
+  circulo: { position: "absolute", width: 280, height: 280, borderRadius: 140, opacity: 0.45 },
 
   fila: { paddingHorizontal: 10, marginVertical: 2, flexDirection: "row" },
   filaMia: { justifyContent: "flex-end" },
   filaOtro: { justifyContent: "flex-start" },
   burbuja: {
     maxWidth: "80%",
-    paddingHorizontal: 10,
-    paddingTop: 6,
-    paddingBottom: 4,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 1,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
+    borderRadius: 18,
   },
-  burbujaMia: { backgroundColor: "#D9FDD3", borderTopRightRadius: 2 },
-  burbujaOtro: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 2 },
-  texto: { fontSize: 15, color: "#111B21", lineHeight: 20 },
+  // Sin backgroundColor: el color lo pone el degradado
+  burbujaMia: { borderTopRightRadius: 6 },
+  burbujaOtro: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(87,67,194,0.10)",
+  },
+  texto: { fontSize: 15, color: C.tinta, lineHeight: 20 },
+  textoMio: { color: "#FFFFFF" },
   meta: {
     flexDirection: "row",
     alignItems: "center",
@@ -186,17 +220,18 @@ const s = StyleSheet.create({
     gap: 3,
     marginTop: 2,
   },
-  hora: { fontSize: 11, color: "#667781" },
+  hora: { fontSize: 11, color: C.niebla },
+  horaMia: { color: "rgba(255,255,255,0.75)" },
 
   dia: {
     alignSelf: "center",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 10,
+    backgroundColor: C.lila,
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 8,
-    marginVertical: 8,
+    borderRadius: 10,
+    marginVertical: 10,
   },
-  diaTexto: { fontSize: 12, color: "#54656F" },
+  diaTexto: { fontSize: 12, color: C.prismaDark, fontWeight: "500" },
 
   barra: {
     flexDirection: "row",
@@ -209,16 +244,18 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     borderRadius: 24,
-    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: C.borde,
+    paddingHorizontal: 16,
     minHeight: 46,
     justifyContent: "center",
   },
-  input: { fontSize: 16, color: "#111B21", maxHeight: 120, paddingVertical: 10 },
+  input: { fontSize: 16, color: C.tinta, maxHeight: 120, paddingVertical: 10 },
   btnEnviar: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#0A3773",
+    backgroundColor: C.prisma,
     alignItems: "center",
     justifyContent: "center",
   },

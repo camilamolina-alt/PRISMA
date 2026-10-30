@@ -62,6 +62,7 @@ export default function AuthorizedLayout() {
             name="productos"
             options={{
               title: "Productos",
+              headerShown: false,
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="cube-outline" size={size} color={color as string} />
               ),

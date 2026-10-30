@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -65,4 +66,19 @@ public class ChatRestController {
 
         return ResponseEntity.ok(mensajes);
     }
+
+    //Put para eñ visto
+
+    @PutMapping("/{otro:.+}/leido")
+    public ResponseEntity<Void> marcado(@PathVariable String otro, Authentication auth){
+        String yo =auth.getName();
+        int cambios= mensajeRepository.marcar(yo, otro);
+
+        if (cambios > 0){
+            mensajeria.convertAndSendToUser(otro, "/queue/leidos", Map.of("lector", yo));
+        }
+        return  ResponseEntity.noContent().build();
+
+    }
+
 }

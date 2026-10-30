@@ -16,6 +16,7 @@ public class Producto {
     private String nombre;
 
     private String descripcion;
+    private String imageUrl;
     private String tipo;
 
     public Producto(){
@@ -54,8 +55,15 @@ public class Producto {
     public String getTipo() {
         return tipo;
     }
-
     public void setTipo(String tipo) {
         this.tipo = tipo;
+    }
+
+    public String getImageUrl(){
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
