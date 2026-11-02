@@ -60,6 +60,11 @@ export default function AuthorizedLayout() {
           name="nuevoUsuario"
           options={{ title: "crud usuario", drawerLabel:"crud usuario" }}
         />
+
+        <Drawer.Screen
+          name="reporteSin"
+          options={{ title: "Reporte Fin", drawerLabel:"Reporte Fin" }}
+        />
       </Drawer>
     </GestureHandlerRootView>
   );
