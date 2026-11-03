@@ -32,6 +32,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/tiendas/**").authenticated()
                         .requestMatchers("/api/me").authenticated()
                         .requestMatchers("/api/chat/**").authenticated()
+                        .requestMatchers("/api/importaciones/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults());
 
@@ -60,4 +61,5 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
 
     }
+
 }

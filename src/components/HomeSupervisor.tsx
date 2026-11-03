@@ -37,7 +37,7 @@ export default function HomeSupervisor() {
     fetch(`${API_URL}/usuarios`, { headers })
       .then((res) => (res.ok ? res.json() : []))
       .then((usuarios: UsuarioDTO[]) => {
-   
+
         const promotores = usuarios.filter(
           (u) => u.rol?.toLowerCase() === "promotor"
         );

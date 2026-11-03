@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { Redirect } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
@@ -58,9 +59,11 @@ export default function Login() {
       <View pointerEvents="none" className="absolute -bottom-28 -right-24 h-80 w-80 rounded-full bg-[#FFE4CB] opacity-70" />
 
       <View className="items-center mb-8">
-        <Text className="text-center text-[30px] font-medium text-[#231A4F] mb-6 mt-4">
-          Prisma
-        </Text>
+      <Image
+      source={require("../../assets/images/icon.png")}
+      style={{ width: 220, height: 220 }}
+      contentFit="contain"
+/>
         <Text className="text-center text-2xl font-semibold text-[#1F1A3D]">
           Bienvenido
         </Text>

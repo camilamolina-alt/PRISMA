@@ -1,6 +1,8 @@
 package com.Prisma.PRISMA.controller;
 
+import com.Prisma.PRISMA.model.Producto;
 import com.Prisma.PRISMA.repository.ProductRepository;
+import org.apache.commons.math3.stat.descriptive.summary.Product;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,5 +46,12 @@ public class ProductoController {
                 return ResponseEntity.internalServerError().body("No se pudo guardar la imagen");
             }
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/sku/{sku}")
+    public ResponseEntity<Producto> skuB(@PathVariable String sku){
+        return productRepository.findBySku(sku)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

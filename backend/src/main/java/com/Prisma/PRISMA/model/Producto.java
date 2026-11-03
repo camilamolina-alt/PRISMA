@@ -18,6 +18,7 @@ public class Producto {
     private String descripcion;
     private String imageUrl;
     private String tipo;
+    private Long precio;
 
     public Producto(){
 
@@ -60,10 +61,19 @@ public class Producto {
     }
 
     public String getImageUrl(){
+
         return imageUrl;
     }
 
     public void setImageUrl(String imageUrl) {
+
         this.imageUrl = imageUrl;
+    }
+
+    public Long getPrecio() {
+        return precio;}
+
+    public void setPrecio(Long precio){
+        this.precio = precio;
     }
 }
