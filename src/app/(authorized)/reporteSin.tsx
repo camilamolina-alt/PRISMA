@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 
-export default function reporteSin() {
+export default function ReporteSin() {
   const [imagen, setImagen] = useState<string | null>(null);
   const [ubicacion, setUbicacion] = useState<Location.LocationObject | null>(null);
   const [cargaUbi, setCargaUbi] = useState<boolean>(false);
@@ -57,65 +57,70 @@ export default function reporteSin() {
     : null;
 
   const manejarSubmit = async () => {
-  if (!imagen) {
-    Alert.alert('Atención', 'Por favor sube foto de cierre');
-    return;
-  }
-  if (!ubicacion) {
-    Alert.alert('Atención', 'No hay punto de salida registrado');
-    return;
-  }
-  if (!confirmado) {
-    Alert.alert('Atención', 'Debes confirmar antes de continuar');
-    return;
-  }
-
-  try {
-    const formulario = new FormData();
-
-    const nombreFile = imagen.split('/').pop() || 'cierre.jpg';
-    const match = /\.(\w+)$/.exec(nombreFile);
-    
-    // Corregido: ${match[1]} con llaves
-    const tipo = match ? `image/${match[1]}` : 'image/jpeg';
-
-    formulario.append('foto', {
-      uri: imagen,
-      name: nombreFile,
-      type: tipo,
-    } as any);
-
-    const datosReporte = {
-      latitud: ubicacion.coords.latitude,
-      longitud: ubicacion.coords.longitude,
-      precision: precision,
-      comentario: comentario,
-      confirmado: confirmado,
-      fechaEnvio: new Date().toISOString(),
-    };
-
-    
-    formulario.append('reporte', JSON.stringify(datosReporte));
-      // cambiar el ip en base al pc/server
-    const response = await fetch('http://192.168.1.x:8090/api/reportes/cierre', {
-      method: 'POST',
-      body: formulario,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    if (response.ok) {
-      Alert.alert('Listo', 'Jornada lista y reporte enviado');
-    } else {
-      const textoError = await response.text();
-      Alert.alert('Error al enviar', `Servidor respondió: ${response.status}`);
+    if (!imagen) {
+      Alert.alert('Atención', 'Por favor sube foto de cierre');
+      return;
     }
-  } catch (error) {
-    Alert.alert('Error al enviar', 'No se ha podido conectar con el servidor.');
-    console.error(error);
-  }
-};
+    if (!ubicacion) {
+      Alert.alert('Atención', 'No hay punto de salida registrado');
+      return;
+    }
+    if (!confirmado) {
+      Alert.alert('Atención', 'Debes confirmar antes de continuar');
+      return;
+    }
+
+    try {
+      const formulario = new FormData();
+
+     
+      const nombreFile = imagen.split('/').pop() || 'cierre.jpg';
+      const match = /\.(\w+)$/.exec(nombreFile);
+      const tipo = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formulario.append('foto', {
+        uri: imagen,
+        name: nombreFile,
+        type: tipo,
+      } as any);
+        
+     
+      formulario.append('latitud', ubicacion.coords.latitude.toString());
+      formulario.append('longitud', ubicacion.coords.longitude.toString());
+      formulario.append('precision', precision !== null ? precision.toString() : '');
+      formulario.append('comentario', comentario);
+      formulario.append('confirmado', confirmado.toString());
+
+      
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'http://192.168.1.100:8090/api/reportes/cierre');
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject(new Error(`Servidor respondió: ${xhr.status} - ${xhr.responseText}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('No se ha podido conectar con el servidor.'));
+        };
+
+        xhr.send(formulario);
+      });
+
+      Alert.alert('Listo', 'Jornada lista y reporte enviado');
+      setImagen(null);
+      setComentario('');
+      setConfimado(false);
+
+    } catch (error: any) {
+      Alert.alert('Error al enviar', error.message || 'No se ha podido conectar con el servidor.');
+      console.error(error);
+    }
+  };
 
   return (
     <ScrollView className="flex-1 bg-white px-5 py-6">
@@ -128,12 +133,11 @@ export default function reporteSin() {
           </Text>
         </View>
         <Text className="text-slate-500 text-sm">
-          Es obligatorio subir una foto de la góndola o exhibidor al finalizar la
-          jornada.
+          Es obligatorio subir una foto de la góndola o exhibidor al finalizar la jornada.
         </Text>
       </View>
 
-      {/* Componente ImagePickerButton */}
+      {/* Selector de Imagen */}
       <View className="mb-6">
         {imagen ? (
           <TouchableOpacity
@@ -173,16 +177,14 @@ export default function reporteSin() {
         )}
       </View>
 
-      {/* Punto de Salida dinámico con expo-location */}
+      {/* Geolocalización */}
       <View className="mb-6">
         <View className="flex-row justify-between items-center mb-2">
           <Text className="text-slate-800 font-bold text-xs tracking-wider uppercase">
             Punto de Salida
           </Text>
           <TouchableOpacity onPress={agarrarUbi} activeOpacity={0.7}>
-            <Text className="text-blue-600 text-xs font-semibold">
-              Actualizar
-            </Text>
+            <Text className="text-blue-600 text-xs font-semibold">Actualizar</Text>
           </TouchableOpacity>
         </View>
 
@@ -194,16 +196,12 @@ export default function reporteSin() {
               <Ionicons name="location" size={38} color="#0073ab" />
               {ubicacion && (
                 <Text className="text-slate-600 text-xs mt-1 font-mono">
-                  {ubicacion.coords.latitude.toFixed(5)},{' '}
-                  {ubicacion.coords.longitude.toFixed(5)}
+                  {ubicacion.coords.latitude.toFixed(5)}, {ubicacion.coords.longitude.toFixed(5)}
                 </Text>
               )}
               <View className="absolute bottom-3 left-4">
                 <Text className="text-slate-600 font-bold text-xs uppercase">
-                  PRECISIÓN:{' '}
-                  <Text className="font-normal">
-                    {precision !== null ? `${precision}M` : 'NO DISPONIBLE'}
-                  </Text>
+                  PRECISIÓN: <Text className="font-normal">{precision !== null ? `${precision}M` : 'NO DISPONIBLE'}</Text>
                 </Text>
               </View>
             </>
@@ -211,7 +209,7 @@ export default function reporteSin() {
         </View>
       </View>
 
-      {/* Comentarios Adicionales */}
+      {/* Comentarios */}
       <View className="mb-6">
         <Text className="text-slate-800 font-bold text-xs tracking-wider uppercase mb-2">
           Comentarios Adicionales
@@ -227,7 +225,7 @@ export default function reporteSin() {
         />
       </View>
 
-      {/* Checkbox de confirmación */}
+      {/* Confirmación y Envío */}
       <TouchableOpacity
         onPress={() => setConfimado(!confirmado)}
         activeOpacity={0.7}
@@ -235,27 +233,23 @@ export default function reporteSin() {
       >
         <View
           className={`w-6 h-6 border rounded justify-center items-center mr-3 ${
-            confirmado
-              ? 'bg-blue-600 border-blue-600'
-              : 'border-slate-300 bg-white'
+            confirmado ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'
           }`}
         >
           {confirmado && <MaterialIcons name="check" size={18} color="white" />}
         </View>
-        <Text className="text-slate-600 text-xs flex-1 leading-4">
-          Confirmo que todos los datos entregados son verídicos y que mi jornada
-          ha concluido legalmente.
+        <Text className="text-sm text-slate-700 flex-1">
+          Confirmo que los datos capturados corresponden a mi salida real de la góndola.
         </Text>
       </TouchableOpacity>
 
-      {/* Botón Principal */}
       <TouchableOpacity
         onPress={manejarSubmit}
         activeOpacity={0.8}
-        className="bg-[#0073ab] py-4 rounded-xl items-center shadow-md mb-8"
+        className="bg-slate-900 rounded-xl py-4 items-center justify-center mb-12"
       >
-        <Text className="text-white font-bold text-base">
-          Finalizar Jornada y enviar reporte
+        <Text className="text-white text-base font-semibold">
+          Finalizar Jornada
         </Text>
       </TouchableOpacity>
     </ScrollView>
