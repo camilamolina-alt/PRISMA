@@ -26,7 +26,7 @@ function IconoTipo({ tipo, color }: { tipo: TipoTarea; color: string }) {
   return <MaterialCommunityIcons name="package-variant-closed" size={13} color={color} />;
 }
 
-// Sombras suaves (mismo valor en todas las tarjetas para que se vean coherentes)
+// Sombras
 const sombraTarjeta = { boxShadow: "0 4px 12px rgba(70, 54, 168, 0.08)" };
 const sombraIcono = (rgb: string) => ({ boxShadow: `0 4px 10px rgba(${rgb}, 0.3)` });
 
@@ -200,6 +200,7 @@ export default function HomePromotor() {
               accessibilityRole="button"
               className="flex-1 items-center rounded-2xl border border-[#E4E2EE] bg-white px-2 py-4"
               style={sombraTarjeta}
+              onPress={() => router.push("/reporteSin")}
             >
               <LinearGradient
                 colors={["#8B6CFF", "#5B3FE0"]}
@@ -358,6 +359,10 @@ export default function HomePromotor() {
         onEscanearOtro={() => {
           setProducto(null);
           setEscanerAbierto(true);
+        }}
+        onVerProducto={(sku) => {
+          setProducto(null);
+          router.push(`/productos?sku=${encodeURIComponent(sku)}`);
         }}
       />
     </ScrollView>

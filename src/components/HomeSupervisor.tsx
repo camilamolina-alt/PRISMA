@@ -1,20 +1,45 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { API_URL } from "../config/api";
+import { NivelAlerta } from "../data/alertas";
+import { useAlertas } from "../providers/AlertaProvider";
 import { useAuthSession } from "../providers/AuthProvider";
 
 interface UsuarioDTO {
   id: string;
-  name: string; 
+  name: string;
   correo: string;
   rol: string;
 }
 
+// Alertas en el inicio: fondo suave + icono de color (sin degradado, para que no sean invasivas)
+const estiloAlerta: Record<NivelAlerta, { fondo: string; color: string }> = {
+  critico: { fondo: "#FDECEC", color: "#C4202F" },
+  retraso: { fondo: "#FFF2DC", color: "#9A5300" },
+  pendiente: { fondo: "#E6EEFF", color: "#2450C2" },
+};
+
+function IconoAlerta({ nivel, color }: { nivel: NivelAlerta; color: string }) {
+  if (nivel === "critico") return <MaterialCommunityIcons name="package-variant-remove" size={22} color={color} />;
+  if (nivel === "retraso") return <MaterialCommunityIcons name="truck-fast-outline" size={22} color={color} />;
+  return <Feather name="check-square" size={20} color={color} />;
+}
+
+// Colores del prisma para la barra de "aplicados en tienda"
+const coloresPrisma = ["#8B7CFF", "#6E8CFF", "#4FA8F5", "#4FC8E8", "#2FCFC4", "#3FD6A0", "#6EDC9E", "#B5DE6A", "#FFC940", "#FF9F6E", "#FF7A9C", "#C77DFF"];
+
+// Sombras suaves (mismo valor en todas las tarjetas para que se vean coherentes)
+const sombraTarjeta = { boxShadow: "0 4px 12px rgba(10, 85, 104, 0.08)" };
+const sombraIcono = (rgb: string) => ({ boxShadow: `0 4px 10px rgba(${rgb}, 0.3)` });
+
 export default function HomeSupervisor() {
   const { signOut, token } = useAuthSession();
   const router = useRouter();
+  const { alertas } = useAlertas();
 
   const [nombre, setNombre] = useState<string | null>(null);
   const [totalPromotores, setTotalPromotores] = useState<number>(0);
@@ -28,7 +53,7 @@ export default function HomeSupervisor() {
     fetch(`${API_URL}/api/me`, { headers })
       .then((res) => (res.ok ? res.json() : null))
       .then((me) => {
-    
+
         setNombre(me?.nombre ?? me?.name ?? null);
       })
       .catch(() => {});
@@ -58,242 +83,244 @@ export default function HomeSupervisor() {
         .join("")
         .toUpperCase()
     : "AA";
+  const primerNombre = nombre?.split(" ")[0];
 
 
-  const fechaHoy = new Date().toLocaleDateString("es-ES", {
+  const fechaHoy = new Date().toLocaleDateString("es-CL", {
     weekday: "long",
-    day: "2-digit",
+    day: "numeric",
     month: "long",
-    year: "numeric",
   });
-  const fechaCapitalizada = fechaHoy.charAt(0).toUpperCase() + fechaHoy.slice(1);
+
+  const nuevas = alertas.filter((a) => a.nueva).length;
+  // En el inicio solo las 2 primeras, el resto en "Ver todas"
+  const alertasInicio = alertas.slice(0, 2);
+
+  // Precios y promos: estatico por ahora
+  const aplicados = 9;
+  const asignados = 12;
+  const faltan = ["Janio", "Rocío", "Matías"];
 
   return (
-    <ScrollView className="flex-1 bg-slate-50 px-5 pt-12">
-      {/* Navbar Superior */}
-      <View className="mb-6 flex-row items-center justify-between">
-        <Pressable className="p-1">
-          <Feather name="menu" size={26} color="#1e3a8a" />
-        </Pressable>
+    <ScrollView className="flex-1 bg-[#EEF6F7]">
+      <StatusBar style="light" />
 
-        <View className="flex-row items-center space-x-4">
-          <Pressable className="relative mr-3 p-1">
-            <Ionicons name="notifications-outline" size={24} color="#1e3a8a" />
-            <View className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-          </Pressable>
-
-          <View className="relative">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-slate-900 shadow-sm">
-              <Text className="text-sm font-bold text-white">{iniciales}</Text>
-            </View>
-            <View className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-          </View>
-        </View>
-      </View>
-
-      {/* Saludo y Fecha */}
-      <View className="mb-6">
-        <Text className="text-2xl font-black tracking-tight text-slate-900">
-          Hola, {nombre ?? "Cargando..."}
-        </Text>
-        <Text className="text-xs font-semibold text-slate-400 capitalize">
-          {fechaCapitalizada}
-        </Text>
-      </View>
-
-      {/* Tarjeta: Promotores Activos (Conectado a la BD) */}
-      <View className="mb-4 flex-row items-center justify-between rounded-2xl bg-white p-5 border-l-4 border-sky-400 shadow-sm">
-        <View className="flex-1">
-          <Text className="text-[10px] font-bold tracking-wider text-slate-400">
-            PROMOTORES ACTIVOS
-          </Text>
-          <View className="my-1 flex-row items-baseline">
-            <Text className="text-3xl font-black text-slate-900">
-              {activosPromotores}
-            </Text>
-            <Text className="ml-1 text-base font-semibold text-slate-400">
-              / {totalPromotores}
-            </Text>
-          </View>
-          <View className="self-start rounded-full bg-emerald-50 px-2.5 py-1">
-            <Text className="text-[11px] font-bold text-emerald-600">
-              ↗ En ruta actualmente
-            </Text>
-          </View>
-        </View>
-
-        <View className="h-12 w-12 items-center justify-center rounded-2xl bg-sky-800">
-          <Ionicons name="location-outline" size={24} color="white" />
-        </View>
-      </View>
-
-      {/* Tarjeta: Cumplimiento Metas */}
-      <View className="mb-6 rounded-2xl bg-white p-5 border-l-4 border-slate-900 shadow-sm">
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-[10px] font-bold tracking-wider text-slate-400">
-              CUMPLIMIENTO METAS
-            </Text>
-            <View className="flex-row items-baseline">
-              <Text className="text-3xl font-black text-slate-900">78</Text>
-              <Text className="ml-0.5 text-base font-bold text-sky-500">%</Text>
-            </View>
-          </View>
-          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-sky-500">
-            <Ionicons name="flash" size={22} color="white" />
-          </View>
-        </View>
-
-        <View className="mt-3 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-          <View className="h-full w-[78%] rounded-full bg-sky-800" />
-        </View>
-
-        <View className="mt-2.5 flex-row items-center justify-between">
-          <Text className="text-xs font-semibold text-slate-400">
-            Meta diaria: 85%
-          </Text>
-          <View className="rounded-full bg-emerald-50 px-2 py-0.5">
-            <Text className="text-[10px] font-bold text-emerald-600">
-              +4% vs ayer
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Alertas Críticas */}
-      <View className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
-        <View className="mb-4 flex-row items-center justify-between">
-          <View className="flex-row items-center space-x-2">
-            <View className="h-7 w-7 items-center justify-center rounded-lg bg-red-50 mr-2">
-              <Ionicons name="warning-outline" size={18} color="#ef4444" />
-            </View>
-            <Text className="text-base font-bold text-slate-800">
-              Alertas Críticas
-            </Text>
-          </View>
-          <View className="rounded-full bg-red-50 px-3 py-1">
-            <Text className="text-[10px] font-bold text-red-500 tracking-wider">
-              3 NUEVAS
-            </Text>
-          </View>
-        </View>
-
-        {/* Alerta 1 */}
-        <Pressable
-          className="mb-3 flex-row items-center justify-between rounded-xl bg-red-50/40 p-3.5 border-l-4 border-red-500"
-          onPress={() => router.push("/alertas")}
-        >
-          <View className="flex-1 pr-2">
-            <View className="flex-row items-center mb-1">
-              <View className="h-2 w-2 rounded-full bg-red-500 mr-2" />
-              <View className="rounded bg-red-100 px-1.5 py-0.5 mr-2">
-                <Text className="text-[9px] font-black text-red-600">CRÍTICO</Text>
-              </View>
-              <Text className="text-xs font-bold text-slate-800 flex-1" numberOfLines={1}>
-                Quiebre de stock en Paris Concepcion
-              </Text>
-            </View>
-            <Text className="text-[11px] text-slate-400 pl-4">
-              Sucursal #P-402 · <Text className="font-semibold text-red-500">Hace 15 min</Text>
-            </Text>
-          </View>
-          <Feather name="chevron-right" size={18} color="#fca5a5" />
-        </Pressable>
-
-        {/* Alerta 2 */}
-        <Pressable
-          className="mb-3 flex-row items-center justify-between rounded-xl bg-amber-50/40 p-3.5 border-l-4 border-amber-400"
-          onPress={() => router.push("/alertas")}
-        >
-          <View className="flex-1 pr-2">
-            <View className="flex-row items-center mb-1">
-              <View className="h-2 w-2 rounded-full bg-amber-400 mr-2" />
-              <View className="rounded bg-amber-100 px-1.5 py-0.5 mr-2">
-                <Text className="text-[9px] font-black text-amber-700">RETRASO</Text>
-              </View>
-              <Text className="text-xs font-bold text-slate-800 flex-1" numberOfLines={1}>
-                Retraso de carga - Camión 04
-              </Text>
-            </View>
-            <Text className="text-[11px] text-slate-400 pl-4">
-              Ruta Portal Temuco · <Text className="font-semibold text-amber-600">Hace 42 min</Text>
-            </Text>
-          </View>
-          <Feather name="chevron-right" size={18} color="#fcd34d" />
-        </Pressable>
-
-        {/* Alerta 3 */}
-        <Pressable
-          className="mb-4 flex-row items-center justify-between rounded-xl bg-sky-50/40 p-3.5 border-l-4 border-sky-400"
-          onPress={() => router.push("/alertas")}
-        >
-          <View className="flex-1 pr-2">
-            <View className="flex-row items-center mb-1">
-              <View className="h-2 w-2 rounded-full bg-sky-400 mr-2" />
-              <View className="rounded bg-sky-100 px-1.5 py-0.5 mr-2">
-                <Text className="text-[9px] font-black text-sky-700">PENDIENTE</Text>
-              </View>
-              <Text className="text-xs font-bold text-slate-800 flex-1" numberOfLines={1}>
-                Falta de Tarea: Janio Perez
-              </Text>
-            </View>
-            <Text className="text-[11px] text-slate-400 pl-4">
-              Zona Sur · <Text className="font-semibold text-sky-600">Hace 1 hora</Text>
-            </Text>
-          </View>
-          <Feather name="chevron-right" size={18} color="#7dd3fc" />
-        </Pressable>
-
-        {/* Botón Ver todas */}
-        <Pressable
-          className="flex-row items-center justify-center rounded-xl bg-slate-900 py-3.5 active:bg-slate-800"
-          onPress={() => router.push("/alertas")}
-        >
-          <Text className="mr-2 text-xs font-bold text-white">
-            Ver todas las alertas
-          </Text>
-          <Feather name="external-link" size={14} color="white" />
-        </Pressable>
-      </View>
-
-      {/* Accesos Directos */}
-      <Text className="mb-3 text-base font-bold text-slate-800">
-        Accesos Directos
-      </Text>
-
-      <View className="mb-8 flex-row justify-between space-x-4">
-        <Pressable
-          className="flex-1 items-center rounded-2xl bg-sky-50/60 p-5 mr-2 border border-sky-100"
-          onPress={() => router.push("/cargas" as any)}
-        >
-          <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-sky-500 shadow-sm">
-            <MaterialCommunityIcons name="truck-fast-outline" size={28} color="white" />
-          </View>
-          <Text className="text-center text-xs font-bold text-slate-700 leading-tight">
-            Seguimiento{"\n"}de Carga
-          </Text>
-        </Pressable>
-
-        <Pressable
-          className="flex-1 items-center rounded-2xl bg-slate-100/60 p-5 ml-2 border border-slate-200"
-          onPress={() => router.push("/rrhh" as any)}
-        >
-          <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 shadow-sm">
-            <Ionicons name="chatbubbles-outline" size={26} color="white" />
-          </View>
-          <Text className="text-center text-xs font-bold text-slate-700 leading-tight">
-            Comunicación{"\n"}con RRHH
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Botón Cerrar Sesión */}
-      <Pressable
-        className="mb-12 items-center rounded-xl bg-slate-200 py-3 active:bg-slate-300"
-        onPress={signOut}
+      {/* Header turquesa: perfil + resumen del equipo */}
+      <LinearGradient
+        colors={["#0A5568", "#0B7C8E", "#0EA5B0", "#3BCBC3"]}
+        locations={[0, 0.42, 0.78, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          paddingHorizontal: 18,
+          paddingTop: 58,
+          paddingBottom: 64,
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+          gap: 22,
+        }}
       >
-        <Text className="text-xs font-bold text-slate-700">Cerrar sesión</Text>
-      </Pressable>
+        {/* Perfil + campana */}
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 flex-row items-center gap-3">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-white">
+              <Text className="text-lg font-bold text-[#0A5568]">{iniciales}</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-xl font-bold text-white">
+                {primerNombre ? `Hola, ${primerNombre}` : "Cargando..."}
+              </Text>
+              <Text className="text-sm text-[#D4F5F4]">Supervisión, {fechaHoy}</Text>
+            </View>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Notificaciones, ${nuevas} nuevas`}
+            className="h-11 w-11 items-center justify-center rounded-full border border-[#FFFFFF59] bg-[#FFFFFF29]"
+            onPress={() => router.push("/alertas")}
+          >
+            <Ionicons name="notifications-outline" size={22} color="white" />
+            {nuevas > 0 && (
+              <View className="absolute -right-0.5 -top-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[#0B7C8E] bg-[#F03E4E] px-1">
+                <Text className="text-[10px] font-bold text-white">{nuevas}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+
+        {/* Resumen a lo largo (como la ruta del promotor): metas (estatico por ahora) + promotores en ruta (BD) */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Metas del equipo 78 por ciento, ${activosPromotores} de ${totalPromotores} promotores en ruta`}
+          className="flex-row items-center justify-between rounded-[20px] border border-[#FFFFFF33] bg-[#FFFFFF1F] px-5 py-4"
+          onPress={() => router.push("/desempeno")}
+        >
+          <View>
+            <Text className="text-[15px] font-semibold text-[#D4F5F4]">Metas del equipo</Text>
+            <Text className="text-[32px] font-extrabold text-white">78%</Text>
+            <View className="mt-1 flex-row items-center gap-1.5">
+              <Ionicons name="location-outline" size={16} color="#E6FAF9" />
+              <Text className="text-sm text-[#E6FAF9]">
+                {activosPromotores} de {totalPromotores} promotores en ruta
+              </Text>
+            </View>
+          </View>
+          <View className="h-16 w-16 rounded-full border-[7px] border-[#FFFFFF40] border-t-[#8B7CFF] border-r-[#4FC8E8] border-b-[#6EDC9E]" />
+        </Pressable>
+      </LinearGradient>
+
+      <View className="-mt-9 gap-6 px-4 pb-10">
+        {/* Precios y promos de hoy: lo principal del supervisor */}
+        <View
+          className="gap-4 rounded-3xl border border-[#DCEBEE] bg-white p-5"
+          style={{ boxShadow: "0 10px 24px rgba(10, 85, 104, 0.14)" }}
+        >
+          <View className="flex-row items-center gap-3">
+            <LinearGradient
+              colors={["#8B6CFF", "#4FB8F0", "#19C2B0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" }, sombraIcono("79, 120, 240")]}
+            >
+              <Feather name="tag" size={24} color="white" />
+            </LinearGradient>
+            <View className="flex-1">
+              <Text className="text-lg font-bold text-[#10262E]">Precios y promos de hoy</Text>
+              <Text className="text-sm text-[#3B5760]">4 envíos a tu equipo</Text>
+            </View>
+          </View>
+
+          <View className="gap-2">
+            <View className="flex-row items-baseline justify-between">
+              <Text className="text-[15px] font-bold text-[#10262E]">Aplicados en tienda</Text>
+              <Text className="text-2xl font-bold text-[#0A6D7D]">
+                {aplicados}
+                <Text className="text-sm font-normal text-[#3B5760]"> de {asignados}</Text>
+              </Text>
+            </View>
+            <View
+              accessible
+              accessibilityLabel={`${aplicados} de ${asignados} promotores aplicaron los cambios`}
+              className="flex-row gap-1"
+            >
+              {Array.from({ length: asignados }, (_, i) => (
+                <View
+                  key={i}
+                  className={`h-3 flex-1 rounded-full ${i < aplicados ? "" : "border border-dashed border-[#9DB6BC] bg-[#E2ECEE]"}`}
+                  style={i < aplicados ? { backgroundColor: coloresPrisma[i % coloresPrisma.length] } : undefined}
+                />
+              ))}
+            </View>
+            {faltan.length > 0 && (
+              <Text className="text-sm text-[#3B5760]">
+                Faltan {faltan.length}: {faltan.slice(0, -1).join(", ")} y {faltan[faltan.length - 1]}
+              </Text>
+            )}
+          </View>
+
+          <View className="flex-row gap-3">
+            <Pressable
+              accessibilityRole="button"
+              className="flex-1 overflow-hidden rounded-full"
+              style={sombraIcono("11, 124, 142")}
+              onPress={() => router.push("/promos" as any)}
+            >
+              <LinearGradient
+                colors={["#0B7C8E", "#0EA5B0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ height: 48, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }}
+              >
+                <Text className="text-[15px] font-bold text-white">Gestionar promos</Text>
+              </LinearGradient>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              className="h-12 flex-1 items-center justify-center rounded-full border border-[#A9DCDD] bg-[#E3F5F5]"
+              onPress={() => router.push("/promos" as any)}
+            >
+              <Text className="text-[15px] font-bold text-[#0A5568]">Ver promociones</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Accesos directos: 3 en fila, igual que las acciones rapidas del promotor */}
+        <View className="gap-3">
+          <Text className="text-base font-bold text-[#10262E]">Accesos directos</Text>
+          <View className="flex-row gap-3">
+            {[
+              { texto: "Mi equipo", ruta: "/equipo", colores: ["#14C2C0", "#0A7A8C"], rgb: "10, 122, 140", icono: <Feather name="users" size={26} color="white" /> },
+              { texto: "Seguimiento de carga", ruta: "/cargas", colores: ["#38BDF8", "#0284C7"], rgb: "2, 132, 199", icono: <MaterialCommunityIcons name="truck-fast-outline" size={28} color="white" /> },
+              { texto: "Planillas", ruta: "/planillas", colores: ["#4ADE80", "#16A34A"], rgb: "22, 163, 74", icono: <MaterialCommunityIcons name="file-table-outline" size={28} color="white" /> },
+            ].map((acceso) => (
+              <Pressable
+                key={acceso.texto}
+                accessibilityRole="button"
+                className="flex-1 items-center rounded-2xl border border-[#DCEBEE] bg-white px-2 py-4"
+                style={sombraTarjeta}
+                onPress={() => router.push(acceso.ruta as any)}
+              >
+                <LinearGradient
+                  colors={acceso.colores as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[{ marginBottom: 8, width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" }, sombraIcono(acceso.rgb)]}
+                >
+                  {acceso.icono}
+                </LinearGradient>
+                <Text className="text-center text-[15px] font-bold leading-5 text-[#10262E]">{acceso.texto}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Alertas: al final y discretas (las del AlertaProvider) */}
+        <View className="gap-3">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-base font-bold text-[#10262E]">Alertas</Text>
+            <Pressable accessibilityRole="link" hitSlop={10} onPress={() => router.push("/alertas")}>
+              <Text className="text-[15px] font-bold text-[#0A6D7D]">Ver todas ({alertas.length})</Text>
+            </Pressable>
+          </View>
+
+          <View className="rounded-2xl border border-[#DCEBEE] bg-white pl-4" style={sombraTarjeta}>
+            {alertasInicio.length === 0 ? (
+              <Text className="py-5 text-center text-[15px] text-[#3B5760]">Sin alertas por ahora</Text>
+            ) : (
+              alertasInicio.map((a, i) => {
+                const estilo = estiloAlerta[a.nivel];
+                return (
+                  <Pressable
+                    key={a.id}
+                    accessibilityRole="button"
+                    className={`min-h-[64px] flex-row items-center gap-3 py-3 pr-4 ${i < alertasInicio.length - 1 ? "border-b border-[#E3EEF0]" : ""}`}
+                    onPress={() => router.push("/alertas")}
+                  >
+                    <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: estilo.fondo }}>
+                      <IconoAlerta nivel={a.nivel} color={estilo.color} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[15px] font-bold text-[#10262E]" numberOfLines={1}>{a.titulo}</Text>
+                      <Text className="text-sm text-[#3B5760]" numberOfLines={1}>{a.detalle}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={20} color="#6E8C94" />
+                  </Pressable>
+                );
+              })
+            )}
+          </View>
+        </View>
+
+        {/* Botón Cerrar Sesión */}
+        <Pressable
+          accessibilityRole="button"
+          className="items-center rounded-xl bg-[#0A5568] py-3"
+          onPress={signOut}
+        >
+          <Text className="font-semibold text-white">Cerrar sesión</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }

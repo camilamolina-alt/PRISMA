@@ -13,9 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -31,6 +29,7 @@ public class UsuarioController {
     private PasswordEncoder passwordEncoder;
 
     public record LoginRequest(String correo, String contrasena) {}
+    public record CambioRol(String rol){}
 
     @GetMapping
     public List<UsuarioDTO> getUsuarios() {
@@ -71,4 +70,29 @@ public class UsuarioController {
         Usuario guardado = usuarioRepository.save(nuevo);
         return new UsuarioDTO(guardado.getIdUsuario(), guardado.getNombre(), guardado.getCorreo(), guardado.getRol());
     }
+
+    @PutMapping("/{id}/rol")
+    public ResponseEntity<?> rolC(@PathVariable UUID id, @RequestBody CambioRol body){
+        Optional<Usuario> encontrado = usuarioRepository.findById(id);
+        if (encontrado.isEmpty()){
+            return  ResponseEntity.notFound().build();
+        }
+
+        Usuario u = encontrado.get();
+        u.setRol(body.rol().toLowerCase());
+        Usuario guardado = usuarioRepository.save(u);
+        return ResponseEntity.ok(new UsuarioDTO(guardado.getIdUsuario(), guardado.getNombre(), guardado.getCorreo(), guardado.getRol()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> borrarUser(@PathVariable UUID id){
+        Optional<Usuario> encontrado = usuarioRepository.findById(id);
+        if (encontrado.isEmpty()){
+            return  ResponseEntity.notFound().build();
+        }
+        usuarioRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
 }

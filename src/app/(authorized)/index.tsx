@@ -1,10 +1,11 @@
 import HomePromotor from "../../components/HomePromotor";
 import HomeSupervisor from "../../components/HomeSupervisor";
+import HomeAdmin from "../../components/HomeAdmin";
 import { useAuthSession } from "../../providers/AuthProvider";
+import { Text } from "react-native";
 
 export default function HomeScreen() {
   const { rol } = useAuthSession();
 
-  // Cada rol ve su propio inicio
-  return rol === "supervisor" ? <HomeSupervisor /> : <HomePromotor />;
+  return rol === "supervisor" ? <HomeSupervisor /> : rol === "admin" ? <HomeAdmin /> : <HomePromotor />;
 }

@@ -17,9 +17,10 @@ interface Props {
   producto: ProductoEscaneado | null;
   onClose: () => void;
   onEscanearOtro: () => void;
+  onVerProducto: (sku:string) => void;
 }
 
-export default function ProductoEscaneadoModal({ producto, onClose, onEscanearOtro }: Props) {
+export default function ProductoEscaneadoModal({ producto, onClose, onEscanearOtro, onVerProducto }: Props) {
   return (
     <Modal visible={producto !== null} transparent animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/50">
@@ -62,8 +63,8 @@ export default function ProductoEscaneadoModal({ producto, onClose, onEscanearOt
 
               {/* Botones */}
               <View className="mt-6 flex-row gap-3">
-                <Pressable className="flex-1 items-center rounded-xl border border-[#E4E2EE] py-3" onPress={onClose}>
-                  <Text className="font-bold text-gray-700">Cerrar</Text>
+                <Pressable className="flex-1 items-center rounded-xl border border-[#E4E2EE] py-3" onPress={() => onVerProducto(producto.sku)}>
+                  <Text className="font-bold text-gray-700">Ver producto</Text>
                 </Pressable>
                 <Pressable className="flex-1 items-center rounded-xl bg-[#0284C7] py-3" onPress={onEscanearOtro}>
                   <Text className="font-bold text-white">Escanear otro</Text>

@@ -16,8 +16,9 @@ export default function AuthorizedLayout() {
   }
 
   const esSupervisor = rol === "supervisor";
+  const esAdmin = rol === "admin";
 
-  // Flecha para volver desde las pantallas que no están en la barra
+  //volevr a las pantallas por si no esta en la barra 
   const botonVolver = () => (
     <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 12 }}>
       <Ionicons name="chevron-back" size={24} color="#208AEF" />
@@ -57,18 +58,21 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Productos: ahora lo ven promotor Y supervisor */}
+          {/* Productos */}
           <Tabs.Screen
             name="productos"
             options={{
               title: "Productos",
               headerShown: false,
+              tabBarItemStyle: esAdmin ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="cube-outline" size={size} color={color as string} />
               ),
+
             }}
           />
 
+          {/* Desempeño */}
           <Tabs.Screen
             name="desempeno"
             options={{
@@ -80,6 +84,7 @@ export default function AuthorizedLayout() {
             }}
           />
 
+          {/* Despacho */}
           <Tabs.Screen
             name="perfil"
             options={{
@@ -90,35 +95,58 @@ export default function AuthorizedLayout() {
               ),
             }}
           />
+
+          {/*Chat*/}
           <Tabs.Screen
             name="chat"
             options={{
-            title: "Comunicación",
-            tabBarIcon: ({ color, size }) => (
-      <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
-    ),
-  }}
-/>
+              title: "Comunicación",
+              headerShown: false, // ya tiene su propio header morado
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
+              ),
+            }}
 
-        <Tabs.Screen
-          name="conversacion"
-          options={{
-          tabBarItemStyle: { display: "none" },
-          tabBarStyle: { display: "none" },
-          headerShown: false,
-  }}
-/>
+            
+          />
+          {/* Reporte de cierre del día */}
+          <Tabs.Screen
+            name="reporteSin"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+          {/* Conversacion , remitente */}
+          <Tabs.Screen
+            name="conversacion"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
 
+
+          />
+
+
+
+
+          {/* Alertas */}
           <Tabs.Screen
             name="alertas"
             options={{
               title: "Alertas",
+              headerShown: false, // ya tiene su propio header morado
+              tabBarItemStyle: esAdmin ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="notifications-outline" size={size} color={color as string} />
               ),
             }}
           />
 
+          {/* Historial de chats*/}
           <Tabs.Screen
             name="histoChat"
             options={{
@@ -130,6 +158,7 @@ export default function AuthorizedLayout() {
             }}
           />
 
+          {/* Ajustes */}
           <Tabs.Screen
             name="ajustes"
             options={{
@@ -141,8 +170,8 @@ export default function AuthorizedLayout() {
             }}
           />
 
-            
-          {/* La pantalla oculta que solo se puede acceder por la barra o quickstart */}
+
+          {/* pantalla oculta que solo se puede acceder por la barra o quickstart */}
           <Tabs.Screen
             name="tiendas"
             options={{
@@ -151,7 +180,16 @@ export default function AuthorizedLayout() {
               headerLeft: botonVolver,
             }}
           />
+          <Tabs.Screen
+            name="gestionUser"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              title: "Gestión de usuarios",
+              headerLeft: botonVolver,
+            }}
+          />
 
+          {/*Detalles de tiendas*/}
           <Tabs.Screen
             name="detalle"
             options={{
@@ -164,7 +202,7 @@ export default function AuthorizedLayout() {
       </AlertasProvider>
     </GestureHandlerRootView>
 
-    
+
   );
 
 

@@ -18,14 +18,15 @@ import { useAuthSession } from "../../providers/AuthProvider";
 import { colorMensajes as C, colorStock } from "../../theme/colores";
 import {Image} from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 
 type Stock = {
   idStock: number;
   producto: { sku: string; nombre: string; tipo?: string, idProducto: number, imageUrl?: string };
   tienda: { departamento: string; ubicacion: string };
-  cantidadSala: number | null;
-  cantidadPlanilla: number | null;
-  stockCritico: number | null;
+  cant_sala: number | null;
+  cant_enviada: number | null;
+  stock_critico: number | null;
 };
 
 type EstadoStock = keyof typeof colorStock;
@@ -33,9 +34,14 @@ type EstadoStock = keyof typeof colorStock;
 // El mismo degradado iridiscente del inicio
 const GRADIENTE_HEADER = ["#4636A8", "#5743C2", "#4F6FD0", "#3F96C4"] as const;
 
-// TODO: estático por ahora, va rotando para ver los tres estados.
-// Después se calcula con cantidadSala vs stockCritico.
-const ESTADOS_DEMO: EstadoStock[] = ["optimo", "critico", "bajo"];
+//Los estados van rotando segun la cantidaa de stocks que existan, el estandar estipulado va a ser de 6
+//No cambiar el ordeeen, o se sobreponen los optimos conn el critico
+function GenEstados(sala: number | null, enviada:number |null): EstadoStock{
+  if (sala == null || enviada == null || enviada === 0) return "bajo";
+  if (sala < enviada / 2) return "critico";
+  if (sala < enviada ) return "bajo";
+  return "optimo";
+}
 
 function StockItem({
   item,
@@ -49,14 +55,14 @@ function StockItem({
   onGuardar: (id: number, cantidad: number) => Promise<void>;
 }) {
   // Cada quien edita su propia cantidad
-  const actual = esSupervisor ? item.cantidadPlanilla : item.cantidadSala;
+  const actual = esSupervisor ? item.cant_enviada : item.cant_sala;
   const [valor, setValor] = useState(actual?.toString() ?? "");
   const [guardando, setGuardando] = useState(false);
 
   const hayDiferencia =
-    item.cantidadSala != null &&
-    item.cantidadPlanilla != null &&
-    item.cantidadSala !== item.cantidadPlanilla;
+    item.cant_sala != null &&
+    item.cant_enviada != null &&
+    item.cant_sala !== item.cant_enviada;
 
   const color = colorStock[estado];
 
@@ -89,7 +95,7 @@ function StockItem({
           <Text style={styles.sku}>{item.tienda.ubicacion}</Text>
 
           <View style={styles.unidades}>
-            <Text style={styles.unidadesNumero}>{item.cantidadSala ?? "—"}</Text>
+            <Text style={styles.unidadesNumero}>{item.cant_sala ?? "—"}</Text>
             <Text style={styles.unidadesTexto}>unidades en sala</Text>
           </View>
 
@@ -102,7 +108,7 @@ function StockItem({
 
       {esSupervisor && hayDiferencia && (
         <Text style={styles.avisoDiferencia}>
-          Planilla dice {item.cantidadPlanilla}, sala tiene {item.cantidadSala}
+          Planilla dice {item.cant_enviada}, sala tiene {item.cant_sala}
         </Text>
       )}
 
@@ -131,7 +137,14 @@ const { token, rol } = useAuthSession();
   const [datos, setDatos] = useState<Stock[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busqueda, setBusqueda] = useState("");
+const { sku } = useLocalSearchParams<{ sku?: string }>();
+const [busqueda, setBusqueda] = useState(sku ?? "");
+const [skuAnterior, setSkuAnterior] = useState(sku);
+
+if (sku !== skuAnterior) {
+  setSkuAnterior(sku);
+  if (sku) setBusqueda(sku);
+}
   const [buscadorActivo, setBuscadorActivo] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -240,10 +253,10 @@ const { token, rol } = useAuthSession();
             {error && <Text style={styles.error}>{error}</Text>}
           </View>
         }
-        renderItem={({ item, index }) => (
+        renderItem={({ item }) => (
           <StockItem
             item={item}
-            estado={ESTADOS_DEMO[index % ESTADOS_DEMO.length]}
+            estado={GenEstados(item.cant_sala, item.cant_enviada)}
             esSupervisor={esSupervisor}
             onGuardar={guardar}
           />

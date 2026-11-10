@@ -104,13 +104,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
       onConnect: () => {
         setConectado(true);
         client.subscribe("/topic/alertas", (msg) => {
-          // Ventana de aviso nativa para confirmar que llegó
-          if (Platform.OS === "web") {
-            window.alert("¡Alerta Crítica Recibida!: " + msg.body);
-          } else {
-            Alert.alert(" Alerta Crítica Recibida", msg.body);
-          }
-
+  
           try {
             const d = JSON.parse(msg.body);
             const nueva: AlertaViva = {
@@ -166,7 +160,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
               router.push("/alertas");
             }}
           >
-            <Text style={styles.bannerTitulo}>⚠️ {banner.titulo}</Text>
+            <Text style={styles.bannerTitulo}>!! {banner.titulo}</Text>
             <Text style={styles.bannerDetalle}>{banner.detalle}</Text>
           </Pressable>
         )}

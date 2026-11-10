@@ -43,8 +43,8 @@ public class TiendaController {
         return tiendaRepository.findById(id).map(t -> {
             long criticas = stockRepository.findByTienda_IdTienda(id).stream()
                     .filter(s -> s.getCant_sala() != null
-                            && s.getStock_critico() != null
-                            && s.getCant_sala() <= s.getStock_critico())
+                            && s.getCant_enviada() != null
+                            && s.getCant_sala() *2< s.getCant_enviada())
                     .count();
 
             return ResponseEntity.ok(new TiendaDetalleDTO(

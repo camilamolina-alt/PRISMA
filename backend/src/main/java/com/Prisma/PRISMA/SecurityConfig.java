@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/me").authenticated()
                         .requestMatchers("/api/chat/**").authenticated()
                         .requestMatchers("/api/importaciones/**").authenticated()
+                        .requestMatchers("/api/reportes/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults());
 

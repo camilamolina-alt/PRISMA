@@ -41,7 +41,7 @@ export default function Login() {
       }
 
       const data = await res.json();
-      const rol: Rol = data.rol === "supervisor" ? "supervisor" : "promotor";
+      const rol: Rol = data.rol === "supervisor" ? "supervisor" : data.rol === "admin" ? "admin" : "promotor";
       await signIn(data.token, rol);
     } catch {
       setError("No se pudo conectar con el servidor");
@@ -52,7 +52,7 @@ export default function Login() {
 
   return (
     <View className="flex-1 justify-center overflow-hidden bg-[#EEEFFA] px-6">
-      {/* Fondo nacar: circulos suaves superpuestos */}
+
       <View pointerEvents="none" className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-[#D8D1FF] opacity-70" />
       <View pointerEvents="none" className="absolute -right-32 -top-10 h-96 w-96 rounded-full bg-[#C6ECF8] opacity-70" />
       <View pointerEvents="none" className="absolute -bottom-20 -left-28 h-80 w-80 rounded-full bg-[#D2F4E3] opacity-70" />

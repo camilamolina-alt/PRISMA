@@ -14,10 +14,9 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     Optional<Stock> findByProducto_SkuAndTienda_IdTienda(String sku, Long idTienda);
 
-    @Query("SELECT s FROM Stock s WHERE s.cant_sala IS NOT NULL AND s.stock_critico IS NOT NULL AND s.cant_sala <= s.stock_critico")
+    @Query("Select s from Stock s where s.cant_sala is not null and s.cant_enviada is not null and s.cant_sala *2 < s.cant_enviada")
     List<Stock> findTodosCriticos();
 
-
-    @Query("SELECT s FROM Stock s WHERE s.tienda.idTienda = :idTienda AND s.cant_sala IS NOT NULL AND s.stock_critico IS NOT NULL AND s.cant_sala <= s.stock_critico")
-    List<Stock> findCriticosPorTienda(@Param("idTienda") Long idTienda);
+    @Query("Select s from Stock s where s.tienda.idTienda = :idTienda and s.cant_sala is not null and s.cant_enviada is not null and s.cant_sala *2 < s.cant_enviada ")
+    List<Stock> findCriticosPorTienda(@Param("idTienda")Long idTienda);
 }

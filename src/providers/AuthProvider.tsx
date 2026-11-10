@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-export type Rol = "promotor" | "supervisor";
+export type Rol = "promotor" | "supervisor" | "admin";
 
 type AuthContextType = {
   token: string | null;
@@ -46,7 +46,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         ]);
         setToken(savedToken || null);
         // Si no hay rol guardado ingresa al promotor
-        setRol(savedRol === "supervisor" ? "supervisor" : "promotor");
+        setRol(
+          savedRol === "supervisor"
+            ? "supervisor"
+            : savedRol === "admin"
+            ? "admin"
+            : "promotor"
+        );
       } catch (e) {
         console.warn(e);
       } finally {

@@ -25,13 +25,12 @@ public class StockController {
         this.mensajeria = mensajeria;
     }
 
-    // GET /api/stock
     @GetMapping
     public ResponseEntity<List<Stock>> listarTodos() {
         return ResponseEntity.ok(stockRepository.findAll());
     }
 
-    // GET /api/stock/tienda/1
+
     @GetMapping("/tienda/{idTienda}")
     public ResponseEntity<List<Stock>> porTienda(@PathVariable Long idTienda) {
         return ResponseEntity.ok(stockRepository.findByTienda_IdTienda(idTienda));
@@ -47,13 +46,12 @@ public class StockController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET /api/stock/criticos
     @GetMapping("/criticos")
     public ResponseEntity<List<Stock>> listarCriticosGlobal() {
         return ResponseEntity.ok(stockRepository.findTodosCriticos());
     }
 
-    // GET /api/stock/tienda/1/criticos (Para el banner rojo de quiebres en Home)
+
     @GetMapping("/tienda/{idTienda}/criticos")
     public ResponseEntity<List<Stock>> listarCriticosPorTienda(@PathVariable Long idTienda) {
         return ResponseEntity.ok(stockRepository.findCriticosPorTienda(idTienda));
@@ -123,7 +121,7 @@ public class StockController {
 
     private boolean esCritico(Stock s) {
         return s.getCant_sala() != null
-                && s.getStock_critico() != null
-                && s.getCant_sala() <= s.getStock_critico();
+                && s.getCant_enviada() != null
+                && s.getCant_sala() * 2  < s.getCant_enviada();
     }
 }
