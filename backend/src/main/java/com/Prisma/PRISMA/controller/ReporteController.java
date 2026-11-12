@@ -1,7 +1,9 @@
 package com.Prisma.PRISMA.controller;
-
+import com.Prisma.PRISMA.repository.ReporteProblemaRepository;
 import com.Prisma.PRISMA.model.ReporteCierre;
+import com.Prisma.PRISMA.model.ReporteProblema;
 import com.Prisma.PRISMA.repository.ReporteCierreRepository;
+import com.Prisma.PRISMA.repository.ReporteProblemaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +20,12 @@ import java.nio.file.Path;
 @CrossOrigin(origins = "*")
 public class ReporteController {
     private final ReporteCierreRepository reporteRepository;
-    private ResponseEntity<String> body;
+    private final ReporteProblemaRepository problemaRepository;
 
-    public ReporteController(ReporteCierreRepository reporteRepository) {
+    public ReporteController(ReporteCierreRepository reporteRepository,
+                             ReporteProblemaRepository problemaRepository) {
         this.reporteRepository = reporteRepository;
-
+        this.problemaRepository = problemaRepository;
     }
 
     @PostMapping("/cierre")
@@ -65,7 +68,43 @@ public class ReporteController {
             return ResponseEntity.internalServerError().body("No se pudo guardar la foto");
 
         }
+
+
+
     }
+    @PostMapping("/problema")
+    public ResponseEntity<?>problema(
+            Authentication auth,
+            @RequestParam("foto") MultipartFile foto,
+            @RequestParam("comentario") String comentario
+    ){
+        if(foto.isEmpty())return ResponseEntity.badRequest().body("Falta foto");
+        if(comentario.isBlank())return ResponseEntity.badRequest().body("Describe el problema");
+
+        String tipo = foto.getContentType();
+        String extens;
+        if ("image/jpeg".equals(tipo) || "image/jpg".equals(tipo)) extens = "jpg";
+        else if ("image/png".equals(tipo)) extens = "png";
+        else return ResponseEntity.badRequest().body("La foto debe ser JPG o PNG");
+        try {
+            Path carpeta = Path.of("uploads", "problema");
+            Files.createDirectories(carpeta);
+            String nombre = "problema" + System.currentTimeMillis() + "." + extens;
+
+            Files.copy(foto.getInputStream(), carpeta.resolve(nombre));
+
+            ReporteProblema problema = new ReporteProblema();
+            problema.setComentario(comentario);
+            problema.setCorreoPromotor(auth.getName());
+           problema.setFotoURL("/uploads/problema/" + nombre);
+
+            return ResponseEntity.ok(problemaRepository.save(problema));
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("No se pudo guardar la foto");
+
+        }
+    }
+
 
 
 }

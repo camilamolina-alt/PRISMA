@@ -19,6 +19,7 @@ import { colorMensajes as C, colorStock } from "../../theme/colores";
 import {Image} from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
+import ProductoSupervisor from "../../components/ProductoSupervisor";
 
 type Stock = {
   idStock: number;
@@ -129,7 +130,13 @@ function StockItem({
   );
 }
 
+// El supervisor tiene su propia pantalla (igual que el Inicio)
 export default function Productos() {
+  const { rol } = useAuthSession();
+  return rol === "supervisor" ? <ProductoSupervisor /> : <ProductosPromotor />;
+}
+
+function ProductosPromotor() {
 const { token, rol } = useAuthSession();
   const insets = useSafeAreaInsets();
   const esSupervisor = rol === "supervisor";

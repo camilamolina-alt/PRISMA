@@ -77,6 +77,7 @@ export default function AuthorizedLayout() {
             name="desempeno"
             options={{
               title: "Personal",
+              headerShown: false, // tiene su propio header turquesa
               tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="people-outline" size={size} color={color as string} />
@@ -89,7 +90,7 @@ export default function AuthorizedLayout() {
             name="perfil"
             options={{
               title: "Despacho",
-              tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
+              tabBarItemStyle: { display: "none" }, // vacia por ahora, oculta para todos
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="map-outline" size={size} color={color as string} />
               ),
@@ -107,11 +108,32 @@ export default function AuthorizedLayout() {
               ),
             }}
 
-            
+
           />
+          <Tabs.Screen
+            name="reporte"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
+
+
           {/* Reporte de cierre del día */}
           <Tabs.Screen
             name="reporteSin"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
+          {/* Reporte de problema */}
+          <Tabs.Screen
+            name="reporteProb"
             options={{
               tabBarItemStyle: { display: "none" },
               tabBarStyle: { display: "none" },
@@ -126,10 +148,19 @@ export default function AuthorizedLayout() {
               tabBarStyle: { display: "none" },
               headerShown: false,
             }}
-
-
           />
 
+
+
+          {/* Gestión de promos/precios/tareas (supervisor) */}
+          <Tabs.Screen
+            name="promos"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
 
 
 
@@ -163,7 +194,7 @@ export default function AuthorizedLayout() {
             name="ajustes"
             options={{
               title: "Chats",
-              tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
+              tabBarItemStyle: { display: "none" }, // repetia "Comunicación", oculta para todos
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="chatbox-ellipses-outline" size={size} color={color as string} />
               ),

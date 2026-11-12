@@ -14,6 +14,10 @@ import ProductoEscaneadoModal, { ProductoEscaneado } from "./ProductoEscaneadoMo
 // TAREAS 
 type TipoTarea = "precio" | "repo" | "promo";
 
+interface TareaApi { idTarea: number; tipo: TipoTarea; nombreTarea: string; checkTarea: boolean; tienda: { nombre: string } }
+interface Tarea { id: number; tipo: TipoTarea; titulo: string; tienda: string; lista: boolean }
+
+
 const estiloTipo: Record<TipoTarea, { texto: string; fondo: string; color: string }> = {
   precio: { texto: "Cambio de precio", fondo: "#E1EBFF", color: "#1F47A8" },
   repo: { texto: "Reposición", fondo: "#ECE8FF", color: "#3A2B96" },
@@ -40,46 +44,61 @@ export default function HomePromotor() {
   const [producto, setProducto] = useState<ProductoEscaneado | null>(null);
 
   // Tareas estaticas por ahora
-  const [tareas, setTareas] = useState([
-    { id: 1, tipo: "precio" as TipoTarea, titulo: "Polera infantil mangb larga a $10.490", tienda: "Paris Concepción", lista: false },
-    { id: 2, tipo: "repo" as TipoTarea, titulo: "Zona infantil y juvenil", tienda: "Paris Mall Plaza Trébol", lista: false },
-    { id: 3, tipo: "promo" as TipoTarea, titulo: "30% en zona infantil", tienda: "Paris Mall Plaza Trébol", lista: false },
-    { id: 4, tipo: "repo" as TipoTarea, titulo: "Zona infantil y juvenil", tienda: "Falabella Mall Plaza Trébol", lista: true },
-  ]);
+
+  const [tareas, setTareas] = useState<Tarea[]>([]);
+
 
   // Nombre de registro para el usuario
   const [nombre, setNombre] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
+
+    // 1) Nombre del promotor 
     fetch(`${API_URL}/api/me`, { headers: { Authorization: token } })
       .then((res) => (res.ok ? res.json() : null))
       .then((me) => setNombre(me?.nombre ?? null))
-      .catch(() => {});
+      .catch(() => { });
+
+    // 2) Mis tareas
+    fetch(`${API_URL}/api/tareas/mio`, { headers: { Authorization: token } })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: TareaApi[]) => {
+        setTareas(
+          data.map((t) => ({
+            id: t.idTarea,
+            tipo: t.tipo,
+            titulo: t.nombreTarea,
+            tienda: t.tienda.nombre,
+            lista: t.checkTarea,
+          }))
+        );
+      })
+      .catch(() => { });
   }, [token]);
 
   const buscarProducto = async (sku: string) => {
-  try {
-    const res = await fetch(
-      `${API_URL}/api/productos/sku/${encodeURIComponent(sku)}`,
-      { headers: { Authorization: token ?? "" } }
-    );
+    try {
+      const res = await fetch(
+        `${API_URL}/api/productos/sku/${encodeURIComponent(sku)}`,
+        { headers: { Authorization: token ?? "" } }
+      );
 
-    if (res.status === 404) {
-      Alert.alert("No encontrado", `No hay ningún producto con el SKU ${sku}`);
-      return;
-    }
-    if (!res.ok) {
-      Alert.alert("Error", "No se pudo buscar el producto");
-      return;
-    }
+      if (res.status === 404) {
+        Alert.alert("No encontrado", `No hay ningún producto con el SKU ${sku}`);
+        return;
+      }
+      if (!res.ok) {
+        Alert.alert("Error", "No se pudo buscar el producto");
+        return;
+      }
 
-    const data: ProductoEscaneado = await res.json();
-    setProducto(data);
-  } catch {
-    Alert.alert("Sin conexión", "No se pudo conectar con el servidor");
-  }
-};
+      const data: ProductoEscaneado = await res.json();
+      setProducto(data);
+    } catch {
+      Alert.alert("Sin conexión", "No se pudo conectar con el servidor");
+    }
+  };
 
 
   const criticas = alertas.filter((a) => a.nivel === "critico");
@@ -99,8 +118,15 @@ export default function HomePromotor() {
   // Primero lo pendiente 
   const proximas = [...tareas].sort((a, b) => Number(a.lista) - Number(b.lista)).slice(0, 3);
 
-  const marcarTarea = (id: number) =>
+  const marcarTarea = (id: number) => {
     setTareas((prev) => prev.map((t) => (t.id === id ? { ...t, lista: !t.lista } : t)));
+
+    fetch(`${API_URL}/api/tareas/${id}/check`, {
+      method: "PUT",
+      headers: { Authorization: token ?? "" },
+    }).catch(() => { });
+  };
+
 
   return (
     <ScrollView className="flex-1 bg-[#F3F2FB]">
@@ -200,7 +226,7 @@ export default function HomePromotor() {
               accessibilityRole="button"
               className="flex-1 items-center rounded-2xl border border-[#E4E2EE] bg-white px-2 py-4"
               style={sombraTarjeta}
-              onPress={() => router.push("/reporteSin")}
+              onPress={() => router.push("/reporte")}
             >
               <LinearGradient
                 colors={["#8B6CFF", "#5B3FE0"]}
@@ -319,9 +345,8 @@ export default function HomePromotor() {
                     accessibilityState={{ checked: t.lista }}
                     accessibilityLabel={`Marcar ${t.titulo} como lista`}
                     hitSlop={8}
-                    className={`h-9 w-9 items-center justify-center rounded-full ${
-                      t.lista ? "bg-[#1F9D55]" : "border-2 border-[#8C86A8] bg-white"
-                    }`}
+                    className={`h-9 w-9 items-center justify-center rounded-full ${t.lista ? "bg-[#1F9D55]" : "border-2 border-[#8C86A8] bg-white"
+                      }`}
                     onPress={() => marcarTarea(t.id)}
                   >
                     {t.lista && <Feather name="check" size={20} color="white" />}
