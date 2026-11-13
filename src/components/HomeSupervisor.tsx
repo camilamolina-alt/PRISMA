@@ -9,6 +9,8 @@ import { NivelAlerta } from "../data/alertas";
 import { useAlertas } from "../providers/AlertaProvider";
 import { useAuthSession } from "../providers/AuthProvider";
 
+interface TareaApi { correoPromotor: string; checkTarea: boolean; }
+
 interface UsuarioDTO {
   id: string;
   name: string;
@@ -16,7 +18,7 @@ interface UsuarioDTO {
   rol: string;
 }
 
-// Alertas en el inicio: fondo suave + icono de color (sin degradado, para que no sean invasivas)
+//alertas
 const estiloAlerta: Record<NivelAlerta, { fondo: string; color: string }> = {
   critico: { fondo: "#FDECEC", color: "#C4202F" },
   retraso: { fondo: "#FFF2DC", color: "#9A5300" },
@@ -30,7 +32,7 @@ function IconoAlerta({ nivel, color }: { nivel: NivelAlerta; color: string }) {
 }
 
 // Colores del prisma para la barra de "aplicados en tienda"
-const coloresPrisma = ["#8B7CFF", "#6E8CFF", "#4FA8F5", "#4FC8E8", "#2FCFC4", "#3FD6A0", "#6EDC9E", "#B5DE6A", "#FFC940", "#FF9F6E", "#FF7A9C", "#C77DFF"];
+const coloresBarra = ["#8B7CFF", "#4FA8F5", "#2FCFC4", "#6EDC9E"] as const;
 
 // Sombras suaves (mismo valor en todas las tarjetas para que se vean coherentes)
 const sombraTarjeta = { boxShadow: "0 4px 12px rgba(10, 85, 104, 0.08)" };
@@ -41,7 +43,9 @@ export default function HomeSupervisor() {
   const router = useRouter();
   const { alertas } = useAlertas();
 
+  const [tareas, setTareas] = useState<TareaApi[]>([]);
   const [nombre, setNombre] = useState<string | null>(null);
+  const[promotores, setPromotores] = useState<UsuarioDTO[]>([]);
   const [totalPromotores, setTotalPromotores] = useState<number>(0);
   const [activosPromotores, setActivosPromotores] = useState<number>(0);
 
@@ -56,7 +60,7 @@ export default function HomeSupervisor() {
 
         setNombre(me?.nombre ?? me?.name ?? null);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // Calculo de promotores
     fetch(`${API_URL}/usuarios`, { headers })
@@ -67,21 +71,28 @@ export default function HomeSupervisor() {
           (u) => u.rol?.toLowerCase() === "promotor"
         );
         setTotalPromotores(promotores.length);
-
+        setPromotores(promotores);
         setActivosPromotores(promotores.length);
       })
       .catch((err) => console.error("Error al cargar promotores:", err));
+
+    fetch(`${API_URL}/api/tareas`, { headers })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: TareaApi[]) => setTareas(data))
+      .catch(() => { });
   }, [token]);
+
+
 
   //perfil
   const iniciales = nombre
     ? nombre
-        .split(" ")
-        .filter(Boolean)
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase()
     : "AA";
   const primerNombre = nombre?.split(" ")[0];
 
@@ -97,9 +108,11 @@ export default function HomeSupervisor() {
   const alertasInicio = alertas.slice(0, 2);
 
   // Precios y promos: estatico por ahora
-  const aplicados = 9;
-  const asignados = 12;
-  const faltan = ["Janio", "Rocío", "Matías"];
+  const aplicados = tareas.filter((t)=>t.checkTarea).length;
+  const asignados = tareas.length;
+  const faltan = promotores
+  .filter((p) => tareas.some((t) => t.correoPromotor === p.correo && !t.checkTarea))
+  .map((p) => p.name);
 
   return (
     <ScrollView className="flex-1 bg-[#EEF6F7]">
@@ -199,22 +212,27 @@ export default function HomeSupervisor() {
                 <Text className="text-sm font-normal text-[#3B5760]"> de {asignados}</Text>
               </Text>
             </View>
+            {/* Barra continua: se llena según el % aplicado (funciona igual con 2 o con 50 tareas) */}
             <View
               accessible
-              accessibilityLabel={`${aplicados} de ${asignados} promotores aplicaron los cambios`}
-              className="flex-row gap-1"
+              accessibilityLabel={`${aplicados} de ${asignados} tareas aplicadas`}
+              className="h-3 overflow-hidden rounded-full bg-[#E2ECEE]"
             >
-              {Array.from({ length: asignados }, (_, i) => (
-                <View
-                  key={i}
-                  className={`h-3 flex-1 rounded-full ${i < aplicados ? "" : "border border-dashed border-[#9DB6BC] bg-[#E2ECEE]"}`}
-                  style={i < aplicados ? { backgroundColor: coloresPrisma[i % coloresPrisma.length] } : undefined}
+              {aplicados > 0 && (
+                <LinearGradient
+                  colors={coloresBarra}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ height: "100%", width: `${(aplicados / asignados) * 100}%`, borderRadius: 999 }}
                 />
-              ))}
+              )}
             </View>
             {faltan.length > 0 && (
               <Text className="text-sm text-[#3B5760]">
-                Faltan {faltan.length}: {faltan.slice(0, -1).join(", ")} y {faltan[faltan.length - 1]}
+                Faltan {faltan.length}:{" "}
+                {faltan.length === 1
+                  ? faltan[0]
+                  : `${faltan.slice(0, -1).join(", ")} y ${faltan[faltan.length - 1]}`}
               </Text>
             )}
           </View>
@@ -238,7 +256,7 @@ export default function HomeSupervisor() {
             <Pressable
               accessibilityRole="button"
               className="h-12 flex-1 items-center justify-center rounded-full border border-[#A9DCDD] bg-[#E3F5F5]"
-              onPress={() => router.push("/promos" as any)}
+              onPress={() => router.push("/verPromos")}
             >
               <Text className="text-[15px] font-bold text-[#0A5568]">Ver promociones</Text>
             </Pressable>
@@ -252,7 +270,7 @@ export default function HomeSupervisor() {
             {[
               { texto: "Mi equipo", ruta: "/equipo", colores: ["#14C2C0", "#0A7A8C"], rgb: "10, 122, 140", icono: <Feather name="users" size={26} color="white" /> },
               { texto: "Seguimiento de carga", ruta: "/cargas", colores: ["#38BDF8", "#0284C7"], rgb: "2, 132, 199", icono: <MaterialCommunityIcons name="truck-fast-outline" size={28} color="white" /> },
-              { texto: "Planillas", ruta: "/planillas", colores: ["#4ADE80", "#16A34A"], rgb: "22, 163, 74", icono: <MaterialCommunityIcons name="file-table-outline" size={28} color="white" /> },
+              { texto: "Documentos", ruta: "/documentos", colores: ["#4ADE80", "#16A34A"], rgb: "22, 163, 74", icono: <MaterialCommunityIcons name="file-table-outline" size={28} color="white" /> },
             ].map((acceso) => (
               <Pressable
                 key={acceso.texto}

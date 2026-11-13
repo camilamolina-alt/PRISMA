@@ -162,6 +162,44 @@ export default function AuthorizedLayout() {
             }}
           />
 
+          {/* Documentos: inicio con acciones y recientes (supervisor) */}
+          <Tabs.Screen
+            name="documentos"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="listaDocumentos"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
+          {/* Documentos: subir planillas Excel (supervisor) */}
+          <Tabs.Screen
+            name="planillas"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
+          {/* Ver promociones por cadena (supervisor) */}
+          <Tabs.Screen
+            name="verPromos"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
 
 
           {/* Alertas */}
