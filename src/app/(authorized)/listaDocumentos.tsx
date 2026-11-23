@@ -1,11 +1,12 @@
 import DocumentoFila from "@/components/DocumentoFila";
 import { Documento, leerDocumentos } from "@/lib/documentos";
+import { useAuthSession } from "@/providers/AuthProvider";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Filtro = "todos" | "ok" | "error";
@@ -18,16 +19,26 @@ const filtros: { valor: Filtro; texto: string }[] = [
 
 export default function ListaDocumentos() {
   const insets = useSafeAreaInsets();
+  const { token } = useAuthSession();
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      leerDocumentos().then(setDocumentos);
-    }, [])
-  );
+  const cargar = useCallback(() => {
+    if (!token) return;
+    leerDocumentos(token)
+      .then((lista) => {
+        setDocumentos(lista);
+        setError(false);
+      })
+      .catch(() => setError(true))
+      .finally(() => setCargando(false));
+  }, [token]);
 
-  const visibles = documentos.filter((d) => filtro === "todos" || (filtro === "ok" ? d.ok : !d.ok));
+  useFocusEffect(cargar);
+
+  const visibles = documentos.filter((d) => filtro === "todos" || (filtro === "ok" ? d.oki : !d.oki));
 
   return (
     <View className="flex-1 bg-[#EEF6F7]">
@@ -84,14 +95,25 @@ export default function ListaDocumentos() {
 
       <FlatList
         data={visibles}
-        keyExtractor={(d) => d.id}
+        keyExtractor={(d) => String(d.idImportar)}
         renderItem={({ item }) => <DocumentoFila doc={item} />}
         contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: insets.bottom + 24 }}
         ListEmptyComponent={
-          <View className="items-center gap-2 py-12">
-            <Feather name="inbox" size={32} color="#6E8C94" />
-            <Text className="text-[15px] font-bold text-[#3B5760]">No hay documentos aquí</Text>
-          </View>
+          cargando ? (
+            <ActivityIndicator color="#0A6D7D" style={{ marginTop: 48 }} />
+          ) : (
+            <View className="items-center gap-2 py-12">
+              <Feather name={error ? "wifi-off" : "inbox"} size={32} color="#6E8C94" />
+              <Text className="text-[15px] font-bold text-[#3B5760]">
+                {error ? "No hay conexión con el servidor" : "No hay documentos aquí"}
+              </Text>
+              {error && (
+                <Pressable accessibilityRole="button" hitSlop={10} onPress={cargar}>
+                  <Text className="text-sm font-bold text-[#0A6D7D]">Reintentar</Text>
+                </Pressable>
+              )}
+            </View>
+          )
         }
       />
     </View>

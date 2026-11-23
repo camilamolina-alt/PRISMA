@@ -1,46 +1,68 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Historial local de planillas subidas (solo en este dispositivo).
-// Cuando exista un GET /api/importaciones en el backend, se puede reemplazar por ese fetch.
+import { API_URL } from "@/config/api";
+import { Directory, File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { Platform } from "react-native";
 
 export type Documento = {
-  id: string;
-  nombre: string;
-  tipo: "tiendas" | "promociones" | "eventos";
-  fecha: string; // ISO
-  ok: boolean;
-  mensaje: string;
+  idImportar: number;
+  nombreArchivo: string;
+  tipo: string; // "tiendas" por ahora
+  correoUsuario: string;
+  mensaje: string | null;
+  oki: boolean;
+  fecha: string; // LocalDateTime en ISO, ej "2026-11-12T14:32:05"
 };
 
-const CLAVE = "prisma:documentos";
-const MAXIMO = 50;
-
-export async function leerDocumentos(): Promise<Documento[]> {
-  try {
-    const crudo = await AsyncStorage.getItem(CLAVE);
-    return crudo ? (JSON.parse(crudo) as Documento[]) : [];
-  } catch {
-    return [];
-  }
+export async function leerDocumentos(token: string): Promise<Documento[]> {
+  const res = await fetch(`${API_URL}/api/importaciones`, { headers: { Authorization: token } });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
 }
 
-export async function guardarDocumento(doc: Omit<Documento, "id" | "fecha">) {
-  const nuevo: Documento = { ...doc, id: `${Date.now()}`, fecha: new Date().toISOString() };
-  const lista = await leerDocumentos();
-  try {
-    await AsyncStorage.setItem(CLAVE, JSON.stringify([nuevo, ...lista].slice(0, MAXIMO)));
-  } catch {
-    // si falla el guardado local no bloqueamos la subida
+export async function abrirDocumento(doc: Documento, token: string) {
+  const url = `${API_URL}/api/importaciones/${doc.idImportar}/archivo`;
+
+  if (Platform.OS === "web") {
+    const res = await fetch(url, { headers: { Authorization: token } });
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    const enlace = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a");
+    a.href = enlace;
+    a.download = doc.nombreArchivo;
+    a.click();
+    URL.revokeObjectURL(enlace);
+    return;
   }
+
+  const carpeta = new Directory(Paths.cache, "documentos", String(doc.idImportar));
+  carpeta.create({ idempotent: true, intermediates: true });
+  const destino = new File(carpeta, doc.nombreArchivo);
+  if (!destino.exists) {
+    const tarea = File.createDownloadTask(url, destino, { headers: { Authorization: token } });
+    const bajado = await tarea.downloadAsync();
+    if (!bajado) throw new Error("No se pudo descargar");
+  }
+
+  if (!(await Sharing.isAvailableAsync())) throw new Error("No se puede abrir en este dispositivo");
+  await Sharing.shareAsync(destino.uri, {
+    mimeType: Platform.OS === "android" ? mimePorNombre(doc.nombreArchivo) : undefined,
+    dialogTitle: doc.nombreArchivo,
+  });
 }
 
-export const nombreTipo: Record<Documento["tipo"], string> = {
+function mimePorNombre(nombre: string) {
+  return nombre.toLowerCase().endsWith(".xls")
+    ? "application/vnd.ms-excel"
+    : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+}
+
+export const nombreTipo: Record<string, string> = {
   tiendas: "Planilla de tiendas",
+  envios: "Planilla de envíos",
   promociones: "Promociones y precios",
   eventos: "Eventos",
 };
 
-// "Hoy 14:32", "Ayer 09:10" o "05 nov 18:00"
 export function fechaCorta(iso: string) {
   const d = new Date(iso);
   const hora = d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });

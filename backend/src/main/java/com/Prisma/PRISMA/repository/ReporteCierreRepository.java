@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface ReporteCierreRepository extends JpaRepository<ReporteCierre,Long> {
     List<ReporteCierre>findByCorreoPromotorOrderByFechaDesc(String correoPromotor);
+    List<ReporteCierre> findAllByOrderByFechaDesc();
 }

@@ -30,8 +30,8 @@ interface AlertaViva {
 const filtros: { valor: Filtro; etiqueta: string }[] = [
   { valor: "todas", etiqueta: "Todas" },
   { valor: "critico", etiqueta: "Críticas" },
-  { valor: "retraso", etiqueta: "Retrasos" },
-  { valor: "pendiente", etiqueta: "Pendientes" },
+  { valor: "retraso", etiqueta: "Atención" },
+  { valor: "pendiente", etiqueta: "Avisos" },
 ];
 
 function haceTiempo(fecha: string): string {
@@ -47,9 +47,37 @@ function haceTiempo(fecha: string): string {
 
 import { useAlertas } from "../../providers/AlertaProvider"; // Hook para las alertas 
 
+// Cada rol con su estética: promotor morado/iridiscente, supervisor turquesa (como su Inicio)
+const temas = {
+  promotor: {
+    fondo: "#F3F2FB",
+    gradiente: ["#4636A8", "#5743C2", "#4F6FD0", "#3F96C4"] as const,
+    locations: [0, 0.45, 0.8, 1] as const,
+    textoSuave: "#E2DDFB",
+    acento: "#4636A8",
+    sombra: "70, 54, 168",
+    borde: "#E4E2EE",
+    tinta: "#1B1733",
+    gris: "#6B6787",
+  },
+  supervisor: {
+    fondo: "#EEF6F7",
+    gradiente: ["#0A5568", "#0B7C8E", "#0EA5B0", "#3BCBC3"] as const,
+    locations: [0, 0.42, 0.78, 1] as const,
+    textoSuave: "#D4F5F4",
+    acento: "#0A6D7D",
+    sombra: "10, 85, 104",
+    borde: "#DCEBEE",
+    tinta: "#10262E",
+    gris: "#3B5760",
+  },
+};
+
 export default function Alertas() {
   const { alertas: vivas, conectado, recargar, marcarLeida, marcarTodas } =
     useAlertas();
+  const { rol } = useAuthSession();
+  const t = rol === "supervisor" || rol === "admin" ? temas.supervisor : temas.promotor;
   const [filtro, setFiltro] = useState<Filtro>("todas");
 
   const alertas: Alerta[] = vivas.map((a) => ({
@@ -79,7 +107,7 @@ export default function Alertas() {
   ).filter((a) => a.id !== destacada?.id);
 
   return (
-    <View className="flex-1 bg-[#F3F2FB]">
+    <View className="flex-1" style={{ backgroundColor: t.fondo }}>
       <StatusBar style="light" />
 
       <FlatList
@@ -87,7 +115,7 @@ export default function Alertas() {
         keyExtractor={(a) => a.id}
         renderItem={({ item }) => (
           <View className="px-4">
-            <AlertaCard alerta={item} onPress={() => marcarLeida(item.id)} />
+            <AlertaCard alerta={item} tema={t} onPress={() => marcarLeida(item.id)} />
           </View>
         )}
         showsVerticalScrollIndicator={false}
@@ -97,8 +125,8 @@ export default function Alertas() {
           <>
             {/* Header  */}
             <LinearGradient
-              colors={["#4636A8", "#5743C2", "#4F6FD0", "#3F96C4"]}
-              locations={[0, 0.45, 0.8, 1]}
+              colors={t.gradiente}
+              locations={t.locations}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
@@ -118,7 +146,7 @@ export default function Alertas() {
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
                   <Text className="text-2xl font-extrabold text-white">Alertas</Text>
-                  <Text className="mt-0.5 text-sm text-[#E2DDFB]">
+                  <Text className="mt-0.5 text-sm" style={{ color: t.textoSuave }}>
                     <Text style={{ color: conectado ? "#6EDC9E" : "#FF9AA2" }}>● </Text>
                     {conectado ? "En vivo" : "Sin conexión"}
                     {nuevas > 0 ? `, ${nuevas} ${nuevas === 1 ? "nueva" : "nuevas"}` : ""}
@@ -137,7 +165,9 @@ export default function Alertas() {
                 )}
               </View>
               <View className="rounded-[20px] border border-[#FFFFFF33] bg-[#FFFFFF1F] px-5 py-4">
-                <Text className="text-[15px] font-semibold text-[#E2DDFB]">Alertas activas</Text>
+                <Text className="text-[15px] font-semibold" style={{ color: t.textoSuave }}>
+                  Alertas activas
+                </Text>
                 <Text className="text-[32px] font-extrabold text-white">{alertas.length}</Text>
 
                 <View className="mt-3 h-2 flex-row gap-[3px] overflow-hidden rounded-full bg-[#FFFFFF26]">
@@ -147,9 +177,9 @@ export default function Alertas() {
                 </View>
 
                 <View className="mt-2.5 flex-row flex-wrap gap-x-4 gap-y-1">
-                  <Leyenda color="#FF6B6B" texto={`${cuenta.critico} críticas`} />
-                  <Leyenda color="#FFB547" texto={`${cuenta.retraso} retrasos`} />
-                  <Leyenda color="#5EEAD4" texto={`${cuenta.pendiente} pendientes`} />
+                  <Leyenda color="#FF6B6B" texto={`${cuenta.critico} críticas`} colorTexto={t.textoSuave} />
+                  <Leyenda color="#FFB547" texto={`${cuenta.retraso} de atención`} colorTexto={t.textoSuave} />
+                  <Leyenda color="#5EEAD4" texto={`${cuenta.pendiente} avisos`} colorTexto={t.textoSuave} />
                 </View>
               </View>
             </LinearGradient>
@@ -157,13 +187,13 @@ export default function Alertas() {
             <View className="-mt-9 gap-5 px-4 pb-3">
               {/* solo si hay alguna critica sin leer  */}
               {destacada ? (
-                <AlertaCard alerta={destacada} destacada onPress={() => marcarLeida(destacada.id)} />
+                <AlertaCard alerta={destacada} tema={t} destacada onPress={() => marcarLeida(destacada.id)} />
               ) : null}
 
               {/* Filtros*/}
               <View
-                className="flex-row gap-1 rounded-2xl border border-[#E4E2EE] bg-white p-1.5"
-                style={{ boxShadow: "0 4px 12px rgba(70, 54, 168, 0.08)" }}
+                className="flex-row gap-1 rounded-2xl border bg-white p-1.5"
+                style={{ borderColor: t.borde, boxShadow: `0 4px 12px rgba(${t.sombra}, 0.08)` }}
               >
                 {filtros.map((f) => {
                   const activo = filtro === f.valor;
@@ -173,12 +203,17 @@ export default function Alertas() {
                       accessibilityRole="tab"
                       accessibilityState={{ selected: activo }}
                       onPress={() => setFiltro(f.valor)}
-                      className={`flex-1 items-center rounded-xl py-2.5 ${activo ? "bg-[#4636A8]" : ""}`}
-                      style={activo ? { boxShadow: "0 4px 10px rgba(70, 54, 168, 0.3)" } : undefined}
+                      className="flex-1 items-center rounded-xl py-2.5"
+                      style={
+                        activo
+                          ? { backgroundColor: t.acento, boxShadow: `0 4px 10px rgba(${t.sombra}, 0.3)` }
+                          : undefined
+                      }
                     >
                       <Text
                         numberOfLines={1}
-                        className={`text-[13px] font-semibold ${activo ? "text-white" : "text-[#6B6787]"}`}
+                        className="text-[13px] font-semibold"
+                        style={{ color: activo ? "#FFFFFF" : t.gris }}
                       >
                         {f.etiqueta}
                       </Text>
@@ -187,15 +222,19 @@ export default function Alertas() {
                 })}
               </View>
 
-              <Text className="text-base font-bold text-[#1B1733]">Recientes</Text>
+              <Text className="text-base font-bold" style={{ color: t.tinta }}>
+                Recientes
+              </Text>
             </View>
           </>
         }
         ListEmptyComponent={
-          <View className="mx-4 items-center rounded-2xl border border-[#E4E2EE] bg-white px-5 py-8">
+          <View className="mx-4 items-center rounded-2xl border bg-white px-5 py-8" style={{ borderColor: t.borde }}>
             <Feather name="check-circle" size={32} color="#1F9D55" />
-            <Text className="mt-2 font-bold text-[#1B1733]">Todo en orden</Text>
-            <Text className="mt-1 text-center text-sm text-[#6B6787]">
+            <Text className="mt-2 font-bold" style={{ color: t.tinta }}>
+              Todo en orden
+            </Text>
+            <Text className="mt-1 text-center text-sm" style={{ color: t.gris }}>
               No hay alertas en esta categoría
             </Text>
           </View>
@@ -205,11 +244,13 @@ export default function Alertas() {
   );
 }
 
-function Leyenda({ color, texto }: { color: string; texto: string }) {
+function Leyenda({ color, texto, colorTexto }: { color: string; texto: string; colorTexto: string }) {
   return (
     <View className="flex-row items-center gap-1.5">
       <View className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      <Text className="text-xs text-[#E2DDFB]">{texto}</Text>
+      <Text className="text-xs" style={{ color: colorTexto }}>
+        {texto}
+      </Text>
     </View>
   );
 }

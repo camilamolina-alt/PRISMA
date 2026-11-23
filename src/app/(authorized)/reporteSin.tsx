@@ -62,7 +62,7 @@ export default function ReporteSin() {
       });
       setUbicacion(ubiActual);
 
-      // Transformar las coordenadas en una dirección 
+      // coordenadas
       try {
         const [lugar] = await Location.reverseGeocodeAsync({
           latitude: ubiActual.coords.latitude,

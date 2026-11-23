@@ -52,6 +52,11 @@ public class StockController {
     }
 
 
+    @GetMapping("/medios")
+    public ResponseEntity<List<Stock>> listarMedios() {
+        return ResponseEntity.ok(stockRepository.findTodosMedios());
+    }
+
     @GetMapping("/tienda/{idTienda}/criticos")
     public ResponseEntity<List<Stock>> listarCriticosPorTienda(@PathVariable Long idTienda) {
         return ResponseEntity.ok(stockRepository.findCriticosPorTienda(idTienda));
@@ -108,15 +113,27 @@ public class StockController {
     // --- APIS ---
 
     private void verificarYNotificar(Stock stock) {
-        if (esCritico(stock)) {
-            mensajeria.convertAndSend("/topic/alertas", new AlertaDTO(
-                    stock.getTienda().getIdTienda(),
-                    "Stock crítico: " + stock.getProducto().getNombre() + " (" + stock.getCant_sala() + " unidades)",
-                    "critico",
-                    stock.getProducto().getNombre(),
-                    LocalDateTime.now()
-            ));
-        }
+        String nivel;
+        String titulo;
+        if (esCritico(stock)) { nivel = "critico"; titulo = "Stock crítico"; }
+        else if (esMedio(stock)) { nivel = "medio"; titulo = "Stock medio"; }
+        else return;
+
+        mensajeria.convertAndSend("/topic/alertas", new AlertaDTO(
+                stock.getTienda().getIdTienda(),
+                titulo + ": " + stock.getProducto().getNombre() + " (" + stock.getCant_sala() + " de " + stock.getCant_enviada() + " unidades)",
+                nivel,
+                stock.getProducto().getNombre(),
+                LocalDateTime.now()
+        ));
+    }
+
+    // Entre la mitad y 3/4 de lo enviado (misma regla que findTodosMedios)
+    private boolean esMedio(Stock s) {
+        return s.getCant_sala() != null
+                && s.getCant_enviada() != null
+                && s.getCant_sala() * 2 >= s.getCant_enviada()
+                && s.getCant_sala() * 4 < s.getCant_enviada() * 3;
     }
 
     private boolean esCritico(Stock s) {

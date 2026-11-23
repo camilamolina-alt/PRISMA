@@ -1,5 +1,6 @@
 import DocumentoFila from "@/components/DocumentoFila";
 import { Documento, leerDocumentos } from "@/lib/documentos";
+import { useAuthSession } from "@/providers/AuthProvider";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
@@ -12,13 +13,15 @@ const sombraTarjeta = { boxShadow: "0 4px 12px rgba(10, 85, 104, 0.08)" };
 
 export default function Documentos() {
   const insets = useSafeAreaInsets();
+  const { token } = useAuthSession();
   const [recientes, setRecientes] = useState<Documento[]>([]);
 
   // recarga cada vez que se vuelve a esta pantalla (ej. después de subir una planilla)
   useFocusEffect(
     useCallback(() => {
-      leerDocumentos().then(setRecientes);
-    }, [])
+      if (!token) return;
+      leerDocumentos(token).then(setRecientes).catch(() => setRecientes([]));
+    }, [token])
   );
 
   const acciones = [
@@ -132,7 +135,7 @@ export default function Documentos() {
         ) : (
           <View className="gap-3">
             {recientes.slice(0, 3).map((doc) => (
-              <DocumentoFila key={doc.id} doc={doc} />
+              <DocumentoFila key={doc.idImportar} doc={doc} />
             ))}
           </View>
         )}

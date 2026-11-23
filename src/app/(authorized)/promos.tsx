@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Promotor { id: string; name: string; correo: string; rol: string; }
 interface Tienda { idTienda: number; nombre: string; ubicacion: string; }
+interface Asignacion { correoPromotor: string; tienda: Tienda; }
 
 type TipoTarea = "precio" | "promo" | "repo";
 
@@ -29,8 +30,9 @@ export default function Promos() {
     const [tiendas, setTiendas] = useState<Tienda[]>([]);
     const [tipo, setTipo] = useState<TipoTarea | null>(null);
     const [nombreTarea, setNombreTarea] = useState("");
-    const [correoPromotor, setCorreoPromotor] = useState<string | null>(null);
-    const [idTienda, setIdTienda] = useState<number | null>(null);
+    const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
+    const [cadena, setCadena] = useState<string | null>(null); // ej. "Ripley": vale para todas sus sucursales
+    const [enviando, setEnviando] = useState(false);
 
     useEffect(() => {
         if (!token) return;
@@ -46,41 +48,55 @@ export default function Promos() {
             .then((data: Tienda[]) => {
                 setTiendas(data);
             });
+
+        fetch(`${API_URL}/api/asignaciones`, { headers })
+            .then((res) => (res.ok ? res.json() : []))
+            .then((data: Asignacion[]) => setAsignaciones(data))
+            .catch(() => { });
     }, [token]);
 
-    // El botón se activa solo cuando está todo elegido
-    const listo = tipo !== null && nombreTarea.trim() !== "" && correoPromotor !== null && idTienda !== null;
+    // Una opción por cadena 
+    const cadenas = Object.values(
+        tiendas.reduce<Record<string, { nombre: string; sucursales: number }>>((acc, t) => {
+            const clave = t.nombre.trim().toLowerCase();
+            acc[clave] = { nombre: acc[clave]?.nombre ?? t.nombre.trim(), sucursales: (acc[clave]?.sucursales ?? 0) + 1 };
+            return acc;
+        }, {})
+    ).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    // Promotores que recibirán la tarea
+    const destinatarios = cadena
+        ? [...new Set(
+            asignaciones
+                .filter((a) => a.tienda?.nombre?.trim().toLowerCase() === cadena.toLowerCase())
+                .map((a) => a.correoPromotor)
+        )].map((correo) => promotores.find((p) => p.correo === correo)?.name ?? correo)
+        : [];
+
+    const listo = tipo !== null && nombreTarea.trim() !== "" && cadena !== null && destinatarios.length > 0 && !enviando;
 
     const enviar = () => {
-        if (!token) return;
-        fetch(`${API_URL}/api/tareas`, {
+        if (!token || !listo) return;
+        setEnviando(true);
+        fetch(`${API_URL}/api/tareas/cadena`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: token },
             body: JSON.stringify({
                 tipo: tipo,
                 nombreTarea: nombreTarea.trim(),
-                correoPromotor: correoPromotor,
-                idTienda: idTienda,
+                cadena: cadena,
             }),
         })
-            .then((res) => {
+            .then(async (res) => {
                 if (res.ok) {
                     router.replace("/");
                 } else {
-                    alert("No se pudo crear la tarea");
+                    alert((await res.text()) || "No se pudo crear la tarea");
                 }
             })
-            .catch(() => alert("No hay conexión con el servidor"));
+            .catch(() => alert("No hay conexión con el servidor"))
+            .finally(() => setEnviando(false));
     };
-
-
-
-
-
-
-
-
-
 
     return (
         <ScrollView
@@ -90,7 +106,7 @@ export default function Promos() {
         >
             <StatusBar style="light" />
 
-            {/* Header turquesa del supervisor */}
+            {/* Header turquesa  */}
             <LinearGradient
                 colors={["#0A5568", "#0B7C8E", "#0EA5B0", "#3BCBC3"]}
                 locations={[0, 0.42, 0.78, 1]}
@@ -149,41 +165,41 @@ export default function Promos() {
                     />
                 </Seccion>
 
-                {/* 3. Promotor */}
-                <Seccion numero={3} titulo="Promotor">
-                    {promotores.length === 0 ? (
-                        <Text className="text-sm text-[#3B5760]">Cargando promotores...</Text>
+                {/* 3. Tienda */}
+                <Seccion numero={3} titulo="Tienda">
+                    {cadenas.length === 0 ? (
+                        <Text className="text-sm text-[#3B5760]">Cargando tiendas...</Text>
                     ) : (
                         <View className="flex-row flex-wrap gap-2">
-                            {promotores.map((p) => (
+                            {cadenas.map((c) => (
                                 <Chip
-                                    key={p.correo}
-                                    texto={p.name}
-                                    icono="user"
-                                    activo={correoPromotor === p.correo}
-                                    onPress={() => setCorreoPromotor(p.correo)}
+                                    key={c.nombre}
+                                    texto={c.sucursales > 1 ? `${c.nombre} (${c.sucursales})` : c.nombre}
+                                    icono="map-pin"
+                                    activo={cadena === c.nombre}
+                                    onPress={() => setCadena(c.nombre)}
                                 />
                             ))}
                         </View>
                     )}
-                </Seccion>
 
-                {/* 4. Tienda */}
-                <Seccion numero={4} titulo="Tienda">
-                    {tiendas.length === 0 ? (
-                        <Text className="text-sm text-[#3B5760]">Cargando tiendas...</Text>
-                    ) : (
-                        <View className="flex-row flex-wrap gap-2">
-                            {tiendas.map((t) => (
-                                <Chip
-                                    key={t.idTienda}
-                                    texto={t.nombre}
-                                    icono="map-pin"
-                                    activo={idTienda === t.idTienda}
-                                    onPress={() => setIdTienda(t.idTienda)}
-                                />
-                            ))}
-                        </View>
+                    {cadena && (
+                        destinatarios.length > 0 ? (
+                            <View className="flex-row items-start gap-2 rounded-2xl bg-[#E3F5F5] p-3">
+                                <Feather name="users" size={16} color="#0A6D7D" style={{ marginTop: 2 }} />
+                                <Text className="flex-1 text-sm text-[#0A5568]">
+                                    <Text className="font-bold">Le llega a: </Text>
+                                    {destinatarios.join(", ")}
+                                </Text>
+                            </View>
+                        ) : (
+                            <View className="flex-row items-start gap-2 rounded-2xl bg-[#FFF2DC] p-3">
+                                <Feather name="alert-circle" size={16} color="#9A5300" style={{ marginTop: 2 }} />
+                                <Text className="flex-1 text-sm text-[#9A5300]">
+                                    Ningún promotor tiene asignada esta tienda todavía
+                                </Text>
+                            </View>
+                        )
                     )}
                 </Seccion>
 
@@ -210,7 +226,7 @@ export default function Promos() {
                         }}
                     >
                         <Feather name="send" size={18} color="white" />
-                        <Text className="text-base font-bold text-white">Asignar tarea</Text>
+                        <Text className="text-base font-bold text-white">{enviando ? "Enviando..." : "Asignar tarea"}</Text>
                     </LinearGradient>
                 </Pressable>
             </View>
@@ -218,7 +234,7 @@ export default function Promos() {
     );
 }
 
-// Tarjeta blanca con número + título (cada paso del formulario)
+
 function Seccion({ numero, titulo, children }: { numero: number; titulo: string; children: React.ReactNode }) {
     return (
         <View className="gap-3 rounded-3xl border border-[#DCEBEE] bg-white p-4" style={sombraTarjeta}>

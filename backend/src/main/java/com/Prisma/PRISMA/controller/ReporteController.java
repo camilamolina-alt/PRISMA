@@ -1,10 +1,13 @@
 package com.Prisma.PRISMA.controller;
-import com.Prisma.PRISMA.repository.ReporteProblemaRepository;
+import com.Prisma.PRISMA.dto.AlertaDTO;
+import com.Prisma.PRISMA.dto.MensajeDTO;
+import com.Prisma.PRISMA.model.Mensaje;
+import com.Prisma.PRISMA.model.Usuario;
+import com.Prisma.PRISMA.repository.*;
 import com.Prisma.PRISMA.model.ReporteCierre;
 import com.Prisma.PRISMA.model.ReporteProblema;
-import com.Prisma.PRISMA.repository.ReporteCierreRepository;
-import com.Prisma.PRISMA.repository.ReporteProblemaRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.List;
 
 
 @RestController
@@ -21,11 +26,15 @@ import java.nio.file.Path;
 public class ReporteController {
     private final ReporteCierreRepository reporteRepository;
     private final ReporteProblemaRepository problemaRepository;
-
-    public ReporteController(ReporteCierreRepository reporteRepository,
-                             ReporteProblemaRepository problemaRepository) {
+    private final UsuarioRepository usuarioRepository;
+    private final MensajeRepository mensajeRepository;
+    private final SimpMessagingTemplate mensajeria;
+    public ReporteController(ReporteCierreRepository reporteRepository, ReporteProblemaRepository problemaRepository, UsuarioRepository usuarioRepository, MensajeRepository mensajeRepository, SimpMessagingTemplate mensajeria) {
         this.reporteRepository = reporteRepository;
         this.problemaRepository = problemaRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.mensajeRepository = mensajeRepository;
+        this.mensajeria = mensajeria;
     }
 
     @PostMapping("/cierre")
@@ -63,9 +72,14 @@ public class ReporteController {
             reporte.setPrecisionMT(precision);
             reporte.setFotoURL("/uploads/reportes/" + nombre);
 
-            return ResponseEntity.ok(reporteRepository.save(reporte));
+            ReporteCierre guardado = reporteRepository.save(reporte);
+            avisoSup(auth.getName(),
+                    "Reporte de cierre: " + (comentario == null || comentario.isBlank() ? "sin comentario" : comentario),
+                    "reporte");
+            return ResponseEntity.ok(guardado);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("No se pudo guardar la foto");
+
 
         }
 
@@ -98,13 +112,42 @@ public class ReporteController {
             problema.setCorreoPromotor(auth.getName());
            problema.setFotoURL("/uploads/problema/" + nombre);
 
-            return ResponseEntity.ok(problemaRepository.save(problema));
+            ReporteProblema guardado = problemaRepository.save(problema);
+            avisoSup(auth.getName(), "Reporte de problema: " + comentario, "problema");
+            return ResponseEntity.ok(guardado);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("No se pudo guardar la foto");
 
         }
     }
 
+    // Lista de cierres (supervisor). Con ?correo= solo los de ese promotor
+    @GetMapping("/cierre")
+    public List<ReporteCierre> listarCierres(@RequestParam(value = "correo", required = false) String correo) {
+        if (correo != null && !correo.isBlank()) return reporteRepository.findByCorreoPromotorOrderByFechaDesc(correo);
+        return reporteRepository.findAllByOrderByFechaDesc();
+    }
 
+    // Lista de problemas (supervisor). Con ?correo= solo los de ese promotor
+    @GetMapping("/problema")
+    public List<ReporteProblema> listarProblemas(@RequestParam(value = "correo", required = false) String correo) {
+        if (correo != null && !correo.isBlank()) return problemaRepository.findByCorreoPromotorOrderByFechaDesc(correo);
+        return problemaRepository.findAllByOrderByFechaDesc();
+    }
 
+    private void avisoSup(String promotor, String texto, String tipo){
+        List<Usuario>supervisor = usuarioRepository.findByRol("supervisor");
+        for(Usuario sup : supervisor){
+            Mensaje m = new Mensaje();
+            m.setRemitente(promotor);
+            m.setReceptor(sup.getCorreo());
+            m.setContenido(texto);
+            MensajeDTO dto = MensajeDTO.from(mensajeRepository.save(m));
+
+            mensajeria.convertAndSendToUser(sup.getCorreo(), "/queue/mensajes", dto);
+            mensajeria.convertAndSendToUser(promotor, "/queue/mensajes", dto);
+            mensajeria.convertAndSendToUser(sup.getCorreo(), "/queue/alertas",
+                    new AlertaDTO(null, texto, tipo, null, LocalDateTime.now()));
+        }
+    }
 }

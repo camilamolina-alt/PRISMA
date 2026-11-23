@@ -34,7 +34,6 @@ function etiquetaDia(iso: string) {
 }
 
 function Burbuja({ m, mio }: { m: Mensaje; mio: boolean }) {
-  // Lo de adentro es igual para las dos; solo cambia el "envase"
   const contenido = (
     <>
       <Text style={[s.texto, mio && s.textoMio]}>{m.contenido}</Text>
@@ -76,7 +75,7 @@ export default function Conversacion() {
   const { mensajes, enviarMensaje, conectado } = useChat(correo);
   const [texto, setTexto] = useState("");
 
-  // FlatList "inverted" dibuja de abajo hacia arriba, así que el más nuevo va primero
+
   const invertidos = useMemo(() => [...mensajes].reverse(), [mensajes]);
 
   const puedeEnviar = conectado && texto.trim().length > 0;
@@ -108,8 +107,7 @@ export default function Conversacion() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior= "padding">
-          {/* Fondo nácar como el login. pointerEvents="none" para que no bloquee toques */}
-          {/* overflow hidden: sin esto los círculos se salen hacia arriba y tiñen el header */}
+
           <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden" }]}>
             <View style={[s.circulo, { top: -60, left: -90, backgroundColor: iris[1] }]} />
             <View style={[s.circulo, { top: 240, right: -120, backgroundColor: iris[0] }]} />
@@ -122,7 +120,6 @@ export default function Conversacion() {
           keyExtractor={(m) => String(m.idMensaje)}
           contentContainerStyle={{ paddingVertical: 8 }}
           renderItem={({ item, index }) => {
-            // En la lista invertida, el mensaje ANTERIOR (más viejo) está en index + 1
             const anterior = invertidos[index + 1];
             const cambiaDia =
               !anterior ||
@@ -203,7 +200,7 @@ const s = StyleSheet.create({
     paddingBottom: 6,
     borderRadius: 18,
   },
-  // Sin backgroundColor: el color lo pone el degradado
+
   burbujaMia: { borderTopRightRadius: 6 },
   burbujaOtro: {
     backgroundColor: "#FFFFFF",

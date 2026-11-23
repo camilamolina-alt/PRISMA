@@ -37,7 +37,7 @@ const sombraIcono = (rgb: string) => ({ boxShadow: `0 4px 10px rgba(${rgb}, 0.3)
 export default function HomePromotor() {
   const { signOut, token } = useAuthSession();
   const router = useRouter();
-  const { alertas } = useAlertas();
+  const { alertas, recargar: recargarAlertas } = useAlertas();
 
 
   const [escanerAbierto, setEscanerAbierto] = useState(false);
@@ -124,7 +124,12 @@ export default function HomePromotor() {
     fetch(`${API_URL}/api/tareas/${id}/check`, {
       method: "PUT",
       headers: { Authorization: token ?? "" },
-    }).catch(() => { });
+    })
+      // cuando el backend guardó el check, las alertas se actualizan (la tarea lista desaparece)
+      .then((res) => {
+        if (res.ok) recargarAlertas();
+      })
+      .catch(() => { });
   };
 
 
@@ -307,7 +312,6 @@ export default function HomePromotor() {
           )}
         </Pressable>
 
-        {/* Proximas tareas etiqueta suave por tipo + circulo para marcar */}
         <View className="gap-3">
           <Text className="text-base font-bold text-[#1B1733]">Próximas tareas</Text>
           <View className="rounded-2xl border border-[#E4E2EE] bg-white px-4" style={sombraTarjeta}>

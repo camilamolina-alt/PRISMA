@@ -17,6 +17,10 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     @Query("Select s from Stock s where s.cant_sala is not null and s.cant_enviada is not null and s.cant_sala *2 < s.cant_enviada")
     List<Stock> findTodosCriticos();
 
+    // Stock medio: en sala queda entre la mitad y 3/4 de lo enviado
+    @Query("Select s from Stock s where s.cant_sala is not null and s.cant_enviada is not null and s.cant_sala * 2 >= s.cant_enviada and s.cant_sala * 4 < s.cant_enviada * 3")
+    List<Stock> findTodosMedios();
+
     @Query("Select s from Stock s where s.tienda.idTienda = :idTienda and s.cant_sala is not null and s.cant_enviada is not null and s.cant_sala *2 < s.cant_enviada ")
     List<Stock> findCriticosPorTienda(@Param("idTienda")Long idTienda);
 }

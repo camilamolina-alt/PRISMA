@@ -3,7 +3,8 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  ScrollView,
+  SectionList,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -24,7 +25,7 @@ import ProductoSupervisor from "../../components/ProductoSupervisor";
 type Stock = {
   idStock: number;
   producto: { sku: string; nombre: string; tipo?: string, idProducto: number, imageUrl?: string };
-  tienda: { departamento: string; ubicacion: string };
+  tienda: { idTienda: number; nombre: string; departamento: string; ubicacion: string };
   cant_sala: number | null;
   cant_enviada: number | null;
   stock_critico: number | null;
@@ -32,7 +33,7 @@ type Stock = {
 
 type EstadoStock = keyof typeof colorStock;
 
-// El mismo degradado iridiscente del inicio
+//DEGRADADOOO
 const GRADIENTE_HEADER = ["#4636A8", "#5743C2", "#4F6FD0", "#3F96C4"] as const;
 
 //Los estados van rotando segun la cantidaa de stocks que existan, el estandar estipulado va a ser de 6
@@ -130,7 +131,7 @@ function StockItem({
   );
 }
 
-// El supervisor tiene su propia pantalla (igual que el Inicio)
+
 export default function Productos() {
   const { rol } = useAuthSession();
   return rol === "supervisor" ? <ProductoSupervisor /> : <ProductosPromotor />;
@@ -154,6 +155,13 @@ if (sku !== skuAnterior) {
 }
   const [buscadorActivo, setBuscadorActivo] = useState(false);
 
+  // Tiendas asignadas al promotor (GET /api/asignaciones/mias): salen primero
+  const [misTiendas, setMisTiendas] = useState<number[]>([]);
+
+  //Filtros por tienda
+  const [filtroTienda, setFiltroTienda] = useState<string>("mias");
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
   const cargar = useCallback(async () => {
     try {
       setError(null);
@@ -162,6 +170,14 @@ if (sku !== skuAnterior) {
       });
       if (!res.ok) throw new Error(`Error ${res.status}`);
       setDatos(await res.json());
+
+      const resAsig = await fetch(`${API_URL}/api/asignaciones/mias`, {
+        headers: { Authorization: token ?? "" },
+      });
+      if (resAsig.ok) {
+        const asignaciones: { tienda: { idTienda: number } }[] = await resAsig.json();
+        setMisTiendas(asignaciones.map((a) => a.tienda.idTienda));
+      }
     } catch (e) {
       setError("No se pudo cargar el stock");
     } finally {
@@ -203,6 +219,26 @@ if (sku !== skuAnterior) {
       )
     : datos;
 
+
+  const tengoTiendas = misTiendas.length > 0;
+  const esMia = (s: Stock) => !tengoTiendas || misTiendas.includes(s.tienda.idTienda);
+
+
+  const misNombres = new Set(datos.filter(esMia).map((s) => clave(s.tienda.nombre)));
+  const otrasTiendas = [...new Map(datos.map((s) => [clave(s.tienda.nombre), s.tienda.nombre.trim()])).entries()]
+    .filter(([k]) => !misNombres.has(k))
+    .sort((x, y) => x[1].localeCompare(y[1]));
+
+  const visibles =
+    filtroTienda === "mias" ? filtrados.filter(esMia) : filtrados.filter((s) => clave(s.tienda.nombre) === filtroTienda);
+  const secciones = agrupar(visibles);
+  const nombreFiltro = otrasTiendas.find(([k]) => k === filtroTienda)?.[1];
+
+  const elegir = (valor: string) => {
+    setFiltroTienda(valor);
+    setMenuAbierto(false);
+  };
+
   if (cargando) return <ActivityIndicator style={{ marginTop: 40 }} color={C.prisma} />;
 
   return (
@@ -222,8 +258,7 @@ if (sku !== skuAnterior) {
         </Text>
       </LinearGradient>
 
-      {/* Buscador montado sobre el borde del header */}
-      <View style={styles.barra}>
+      <View style={[styles.barra, { zIndex: 20, elevation: 20 }]}>
         <View style={[styles.buscador, buscadorActivo && styles.buscadorActivo]}>
           <Ionicons name="search" size={18} color={buscadorActivo ? C.prisma : C.niebla} />
           <TextInput
@@ -243,35 +278,108 @@ if (sku !== skuAnterior) {
           )}
         </View>
 
-        {/* TODO: el filtro todavía no hace nada */}
-        <TouchableOpacity style={styles.filtrar} activeOpacity={0.8} accessibilityLabel="Filtrar productos">
-          <Ionicons name="options-outline" size={20} color={C.prisma} />
+        <TouchableOpacity
+          style={[styles.filtrar, (menuAbierto || filtroTienda !== "mias") && styles.filtrarActivo]}
+          activeOpacity={0.8}
+          onPress={() => setMenuAbierto((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel="Elegir tienda"
+          accessibilityState={{ expanded: menuAbierto }}
+        >
+          <Ionicons
+            name="storefront-outline"
+            size={20}
+            color={menuAbierto || filtroTienda !== "mias" ? "#fff" : C.prisma}
+          />
         </TouchableOpacity>
+
+        {menuAbierto && (
+          <View style={styles.menu}>
+            <OpcionMenu
+              texto={tengoTiendas ? "Mis tiendas" : "Todas las tiendas"}
+              icono="star"
+              activo={filtroTienda === "mias"}
+              onPress={() => elegir("mias")}
+            />
+            {otrasTiendas.length > 0 && tengoTiendas && (
+              <>
+                <View style={styles.menuLinea} />
+                <Text style={styles.menuTitulo}>Otras tiendas</Text>
+                <ScrollView style={{ maxHeight: 260 }}>
+                  {otrasTiendas.map(([k, nombre]) => (
+                    <OpcionMenu
+                      key={k}
+                      texto={nombre}
+                      activo={filtroTienda === k}
+                      onPress={() => elegir(k)}
+                    />
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </View>
+        )}
       </View>
 
-      <FlatList
-        data={filtrados}
+      {/* menu desde afuera */}
+      {menuAbierto && (
+        <Pressable
+          style={[StyleSheet.absoluteFill, { zIndex: 10 }]}
+          onPress={() => setMenuAbierto(false)}
+          accessibilityLabel="Cerrar menú de tiendas"
+        />
+      )}
+
+
+      {filtroTienda !== "mias" && nombreFiltro && (
+        <View style={styles.viendo}>
+          <Text style={styles.viendoTexto}>
+            Viendo <Text style={{ fontWeight: "700" }}>{nombreFiltro}</Text>
+          </Text>
+          <Pressable onPress={() => setFiltroTienda("mias")} hitSlop={10} accessibilityLabel="Volver a mis tiendas">
+            <Ionicons name="close-circle" size={18} color={C.prisma} />
+          </Pressable>
+        </View>
+      )}
+
+      <SectionList
+        sections={secciones}
         keyExtractor={(s) => s.idStock.toString()}
         contentContainerStyle={styles.lista}
         keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={
-          <View>
-            <Text style={styles.seccion}>Inventario en sala</Text>
-            {error && <Text style={styles.error}>{error}</Text>}
+        stickySectionHeadersEnabled={false}
+        ListHeaderComponent={error ? <Text style={[styles.error, { marginTop: 16 }]}>{error}</Text> : undefined}
+        renderSectionHeader={({ section }) => (
+          <View style={[styles.cajaArriba, section === secciones[0] && { marginTop: 18 }]}>
+          <View style={styles.tiendaFila}>
+            {filtroTienda === "mias" && <Ionicons name="star" size={15} color={C.prisma} />}
+            <Text style={styles.seccion} numberOfLines={1}>
+              {section.titulo}
+            </Text>
+            <Text style={styles.tiendaCuenta}>{section.data.length}</Text>
           </View>
-        }
+          </View>
+        )}
+
+        renderSectionFooter={() => <View style={styles.cajaAbajo} />}
         renderItem={({ item }) => (
-          <StockItem
-            item={item}
-            estado={GenEstados(item.cant_sala, item.cant_enviada)}
-            esSupervisor={esSupervisor}
-            onGuardar={guardar}
-          />
+          <View style={styles.cajaMedio}>
+            <StockItem
+              item={item}
+              estado={GenEstados(item.cant_sala, item.cant_enviada)}
+              esSupervisor={esSupervisor}
+              onGuardar={guardar}
+            />
+          </View>
         )}
         refreshControl={<RefreshControl refreshing={false} onRefresh={cargar} tintColor={C.prisma} />}
         ListEmptyComponent={
           <Text style={styles.vacio}>
-            {texto ? `Ningún producto coincide con "${busqueda}"` : "Todavía no hay productos en sala"}
+            {texto
+              ? `Ningún producto coincide con "${busqueda}"`
+              : filtroTienda === "mias" && tengoTiendas
+                ? "Tus tiendas todavía no tienen productos"
+                : "Todavía no hay productos en sala"}
           </Text>
         }
       />
@@ -279,11 +387,54 @@ if (sku !== skuAnterior) {
   );
 }
 
+// sin espacios para comparar (RIPLEY = ripley)
+function clave(nombre: string) {
+  return nombre.trim().toLowerCase();
+}
+
+// Agrupa el stock por nombre de tienda
+function agrupar(lista: Stock[]) {
+  const grupos = new Map<string, { titulo: string; data: Stock[] }>();
+  for (const s of lista) {
+    const k = clave(s.tienda.nombre);
+    const g = grupos.get(k) ?? { titulo: s.tienda.nombre.trim(), data: [] };
+    g.data.push(s);
+    grupos.set(k, g);
+  }
+  return [...grupos.values()];
+}
+
+function OpcionMenu({
+  texto,
+  icono,
+  activo,
+  onPress,
+}: {
+  texto: string;
+  icono?: keyof typeof Ionicons.glyphMap; // solo las mias se destacan
+  activo: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.opcion, (activo || pressed) && { backgroundColor: C.fondo }]}
+      accessibilityRole="menuitem"
+      accessibilityState={{ selected: activo }}
+    >
+      {icono && <Ionicons name={icono} size={16} color={C.prisma} />}
+      <Text style={[styles.opcionTexto, activo && { fontWeight: "700", color: C.prisma }]} numberOfLines={1}>
+        {texto}
+      </Text>
+      {activo && <Ionicons name="checkmark" size={18} color={C.prisma} />}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   contenedor: { flex: 1, backgroundColor: C.fondo },
   lista: { paddingHorizontal: 16, paddingBottom: 32 },
 
-  // Más bajo que el del inicio: solo título y conteo, para que no le robe protagonismo a la lista
   header: {
     paddingHorizontal: 20,
     paddingBottom: 44,
@@ -326,8 +477,96 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  filtrarActivo: { backgroundColor: C.prisma, borderColor: C.prisma },
 
-  seccion: { fontSize: 17, fontWeight: "700", color: C.tinta, marginTop: 20, marginBottom: 12 },
+  seccion: { flexShrink: 1, fontSize: 16, fontWeight: "700", color: C.tinta },
+
+  cajaArriba: {
+    marginTop: 24,
+    backgroundColor: "#FBFAFE",
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: "#E4E2EE",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+  },
+  cajaMedio: {
+    backgroundColor: "#FBFAFE",
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "#E4E2EE",
+    paddingHorizontal: 12,
+  },
+  cajaAbajo: {
+    height: 4,
+    backgroundColor: "#FBFAFE",
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: "#E4E2EE",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+
+  tiendaFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingBottom: 12,
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEAF4",
+  },
+  tiendaCuenta: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: C.prisma,
+    backgroundColor: C.lila,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
+  menu: {
+    position: "absolute",
+    top: 58,
+    right: 16,
+    width: 240,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.borde,
+    paddingVertical: 6,
+    boxShadow: "0 10px 24px rgba(27, 23, 51, 0.16)",
+    elevation: 12,
+  },
+  menuLinea: { height: 1, backgroundColor: C.borde, marginVertical: 6 },
+  menuTitulo: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: C.niebla,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  opcion: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  opcionTexto: { flex: 1, fontSize: 15, color: C.tinta },
+
+  viendo: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    marginTop: 12,
+    marginHorizontal: 16,
+    backgroundColor: C.lila,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  viendoTexto: { fontSize: 13, color: C.tinta },
   error: { color: colorStock.critico.fuerte, marginBottom: 12 },
   vacio: { textAlign: "center", color: C.niebla, marginTop: 32 },
 

@@ -36,6 +36,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/reportes/**").authenticated()
                         .requestMatchers("/api/tareas/**").authenticated()
                         .requestMatchers("/api/asignaciones/**").authenticated()
+                        .requestMatchers("/api/metas/**").authenticated()
+                        .requestMatchers("/api/envios/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults());
 

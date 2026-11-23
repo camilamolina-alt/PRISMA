@@ -18,7 +18,7 @@ export default function AuthorizedLayout() {
   const esSupervisor = rol === "supervisor";
   const esAdmin = rol === "admin";
 
-  //volevr a las pantallas por si no esta en la barra 
+
   const botonVolver = () => (
     <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 12 }}>
       <Ionicons name="chevron-back" size={24} color="#208AEF" />
@@ -77,7 +77,7 @@ export default function AuthorizedLayout() {
             name="desempeno"
             options={{
               title: "Personal",
-              headerShown: false, // tiene su propio header turquesa
+              headerShown: false, 
               tabBarItemStyle: !esSupervisor ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="people-outline" size={size} color={color as string} />
@@ -90,7 +90,7 @@ export default function AuthorizedLayout() {
             name="perfil"
             options={{
               title: "Despacho",
-              tabBarItemStyle: { display: "none" }, // vacia por ahora, oculta para todos
+              tabBarItemStyle: { display: "none" }, 
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="map-outline" size={size} color={color as string} />
               ),
@@ -102,7 +102,7 @@ export default function AuthorizedLayout() {
             name="chat"
             options={{
               title: "Comunicación",
-              headerShown: false, // ya tiene su propio header morado
+              headerShown: false, 
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
               ),
@@ -190,6 +190,26 @@ export default function AuthorizedLayout() {
             }}
           />
 
+          {/* Seguimiento de carga: envíos desde bodega (supervisor gestiona, promotor ve) */}
+          <Tabs.Screen
+            name="cargas"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
+          {/* Reportes del equipo: cierre y problemas de los promotores (supervisor) */}
+          <Tabs.Screen
+            name="equipo"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
           {/* Ver promociones por cadena (supervisor) */}
           <Tabs.Screen
             name="verPromos"
@@ -215,9 +235,16 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Historial de chats*/}
+          {/* Pestaña "Reportes" del promotor: abre el reporte de fin de jornada (/reporte).
+              La pantalla histoChat (del compañero) queda sin uso, por eso se intercepta el toque */}
           <Tabs.Screen
             name="histoChat"
+            listeners={{
+              tabPress: (e) => {
+                e.preventDefault();
+                router.push("/reporte");
+              },
+            }}
             options={{
               title: "Reportes",
               tabBarItemStyle: esSupervisor ? { display: "none" } : undefined,
@@ -232,7 +259,7 @@ export default function AuthorizedLayout() {
             name="ajustes"
             options={{
               title: "Chats",
-              tabBarItemStyle: { display: "none" }, // repetia "Comunicación", oculta para todos
+              tabBarItemStyle: { display: "none" }, 
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="chatbox-ellipses-outline" size={size} color={color as string} />
               ),
@@ -240,7 +267,6 @@ export default function AuthorizedLayout() {
           />
 
 
-          {/* pantalla oculta que solo se puede acceder por la barra o quickstart */}
           <Tabs.Screen
             name="tiendas"
             options={{

@@ -268,7 +268,7 @@ export default function HomeSupervisor() {
           <Text className="text-base font-bold text-[#10262E]">Accesos directos</Text>
           <View className="flex-row gap-3">
             {[
-              { texto: "Mi equipo", ruta: "/equipo", colores: ["#14C2C0", "#0A7A8C"], rgb: "10, 122, 140", icono: <Feather name="users" size={26} color="white" /> },
+              { texto: "Reportes", ruta: "/equipo", colores: ["#14C2C0", "#0A7A8C"], rgb: "10, 122, 140", icono: <MaterialCommunityIcons name="clipboard-text-outline" size={28} color="white" /> },
               { texto: "Seguimiento de carga", ruta: "/cargas", colores: ["#38BDF8", "#0284C7"], rgb: "2, 132, 199", icono: <MaterialCommunityIcons name="truck-fast-outline" size={28} color="white" /> },
               { texto: "Documentos", ruta: "/documentos", colores: ["#4ADE80", "#16A34A"], rgb: "22, 163, 74", icono: <MaterialCommunityIcons name="file-table-outline" size={28} color="white" /> },
             ].map((acceso) => (

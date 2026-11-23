@@ -51,11 +51,11 @@ export default function ReporteSin() {
 
     }
 
-    if (!comentario.trim()){
+    if (!comentario.trim()) {
       Alert.alert("Atencion", "Describe el problema");
       return;
     }
-    
+
 
     setEnviando(true);
 
@@ -97,7 +97,7 @@ export default function ReporteSin() {
 
       setImagen(null);
       setComentario("");
-      // Al apretar OK vuelve al inicio
+
       Alert.alert("Listo", "Problema Listo ", [
         { text: "OK", onPress: () => router.replace("/reporteSin") },
       ]);
@@ -219,63 +219,63 @@ export default function ReporteSin() {
           </ImagePickerButton>
         )}
 
-  
 
-            {/* Comentarios */}
-            <View>
-              <Text className="mb-2 mt-1 text-base font-bold text-[#1B1733]">
-                Comentarios adicionales
-              </Text>
-              <TextInput
-                className="min-h-[96px] rounded-2xl border border-[#E4E2EE] bg-white p-4 text-sm text-[#1B1733]"
-                style={sombraTarjeta}
-                placeholder="¿Algo más que debamos saber?"
-                placeholderTextColor="#8E8AA8"
-                multiline
-                textAlignVertical="top"
-                value={comentario}
-                onChangeText={setComentario}
-              />
-            </View>
 
-          
+        {/* Comentarios */}
+        <View>
+          <Text className="mb-2 mt-1 text-base font-bold text-[#1B1733]">
+            Comentarios adicionales
+          </Text>
+          <TextInput
+            className="min-h-[96px] rounded-2xl border border-[#E4E2EE] bg-white p-4 text-sm text-[#1B1733]"
+            style={sombraTarjeta}
+            placeholder="¿Algo más que debamos saber?"
+            placeholderTextColor="#8E8AA8"
+            multiline
+            textAlignVertical="top"
+            value={comentario}
+            onChangeText={setComentario}
+          />
+        </View>
 
-            {/* Enviar */}
-            <Pressable
-              onPress={manejarSubmit}
-              disabled={enviando}
-              accessibilityRole="button"
-              style={{ opacity: enviando ? 0.7 : 1 }}
-            >
-              <LinearGradient
-                colors={["#5B3FE0", "#4636A8"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[
-                  {
-                    borderRadius: 16,
-                    paddingVertical: 16,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                  },
-                  sombraIcono("70, 54, 168"),
-                ]}
-              >
-                {enviando ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <>
-                    <Feather name="send" size={18} color="white" />
-                    <Text className="text-base font-bold text-white">
-                      Finalizar y enviar reporte
-                    </Text>
-                  </>
-                )}
-              </LinearGradient>
-            </Pressable>
-          </View>
-        </ScrollView>
-        );
-      }
+
+
+        {/* Enviar */}
+        <Pressable
+          onPress={manejarSubmit}
+          disabled={enviando}
+          accessibilityRole="button"
+          style={{ opacity: enviando ? 0.7 : 1 }}
+        >
+          <LinearGradient
+            colors={["#5B3FE0", "#4636A8"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              {
+                borderRadius: 16,
+                paddingVertical: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              },
+              sombraIcono("70, 54, 168"),
+            ]}
+          >
+            {enviando ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Feather name="send" size={18} color="white" />
+                <Text className="text-base font-bold text-white">
+                  Finalizar y enviar reporte
+                </Text>
+              </>
+            )}
+          </LinearGradient>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+}
