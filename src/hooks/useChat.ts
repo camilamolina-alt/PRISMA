@@ -1,9 +1,8 @@
 import { Client } from "@stomp/stompjs";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { API_URL } from "../config/api";
+import { API_URL, wsUrl } from "../config/api";
 import { useAuthSession } from "../providers/AuthProvider";
 
-const WS_URL = API_URL.replace(/^http/, "ws") + "/ws";
 
 export type Mensaje = {
     idMensaje: number;
@@ -41,7 +40,7 @@ export function useChat(otro: string) {
 
     const client = new Client({
         debug: (str) => console.log("CHAT:", str),
-        brokerURL: WS_URL,
+        brokerURL: wsUrl(),
         connectHeaders: { Authorization: token },
         reconnectDelay: 5000,
         forceBinaryWSFrames: true,

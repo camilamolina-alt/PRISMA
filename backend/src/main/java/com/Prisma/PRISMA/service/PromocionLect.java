@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.Set;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -27,19 +28,22 @@ public class PromocionLect {
     private final AsignarTiendaRepository asignarTiendaRepository;
     private final TareaRepository tareaRepository;
     private final SimpMessagingTemplate mensajeria;
+    private final EquipoService equipoService;
 
-    public PromocionLect(PromocionesRepository promocionesRepository, TiendaRepository tiendaRepository, AsignarTiendaRepository asignarTiendaRepository, TareaRepository tareaRepository, SimpMessagingTemplate mensajeria) {
+    public PromocionLect(PromocionesRepository promocionesRepository, TiendaRepository tiendaRepository, AsignarTiendaRepository asignarTiendaRepository, TareaRepository tareaRepository, SimpMessagingTemplate mensajeria, EquipoService equipoService) {
         this.promocionesRepository = promocionesRepository;
         this.tiendaRepository = tiendaRepository;
         this.tareaRepository = tareaRepository;
         this.asignarTiendaRepository = asignarTiendaRepository;
         this.mensajeria = mensajeria;
+        this.equipoService = equipoService;
     }
 
     public record Result(int promociones, int tareas) {}
 
     @Transactional
-    public Result importe(MultipartFile archi) throws Exception {
+    public Result importe(MultipartFile archi, String correoSupervisor) throws Exception {
+        Set<String> equipo = equipoService.correosDelEquipo(correoSupervisor);
         int promos = 0;
         int tareas = 0;
         LocalDate hoy = LocalDate.now();
@@ -86,18 +90,19 @@ public class PromocionLect {
 
                 boolean vencida = hasta != null && hasta.isBefore(hoy);
                 if (!tipo.equals("evento") && !vencida) {
-                    tareas += crearTareas(promo);
+                    tareas += crearTareas(promo, equipo);
                 }
             }
         }
         return new Result(promos, tareas);
     }
 
-    private int crearTareas(Promocion promo) {
+    private int crearTareas(Promocion promo, Set<String> equipo) {
         String nombre = (promo.getTipo().equals("precio") ? "Cambiar precio: " : "Aplicar promo: ") + promo.getDescrip();
         int creadas = 0;
         for (Tienda sucursal : tiendaRepository.findByNombreIgnoreCase(promo.getTienda())) {
             for (AsignarTienda asignacion : asignarTiendaRepository.findByTienda_IdTienda(sucursal.getIdTienda())) {
+                if (equipo != null && !equipo.contains(asignacion.getCorreoPromotor())) continue;
                 Tarea tarea = new Tarea();
                 tarea.setTipo(promo.getTipo());
                 tarea.setNombreTarea(nombre);

@@ -1,3 +1,4 @@
+import EvidenciaTareaModal, { TareaParaCompletar } from "@/components/EvidenciaTareaModal";
 import { API_URL } from "@/config/api";
 import { useAlertas } from "@/providers/AlertaProvider";
 import { useAuthSession } from "@/providers/AuthProvider";
@@ -19,6 +20,7 @@ interface TareaApi {
   checkTarea: boolean;
   fecha: string;
   fechaCheck: string | null;
+  fotoURL: string | null;
   tienda: { nombre: string; ubicacion: string };
 }
 
@@ -77,7 +79,14 @@ export default function Tareas() {
     }, [cargar])
   );
 
+  const [completando, setCompletando] = useState<TareaParaCompletar | null>(null);
+
   const marcar = (id: number) => {
+    const tarea = tareas.find((t) => t.idTarea === id);
+    if (tarea && !tarea.checkTarea) {
+      setCompletando({ id, titulo: tarea.nombreTarea, tienda: tarea.tienda.nombre });
+      return;
+    }
     setTareas((prev) => prev.map((t) => (t.idTarea === id ? { ...t, checkTarea: !t.checkTarea } : t)));
     fetch(`${API_URL}/api/tareas/${id}/check`, { method: "PUT", headers: { Authorization: token ?? "" } })
       .then((res) => {
@@ -207,6 +216,12 @@ export default function Tareas() {
                       ? `Lista el ${fechaCorta(t.fechaCheck)}`
                       : `Asignada el ${fechaCorta(t.fecha)}`}
                   </Text>
+                  {t.checkTarea && t.fotoURL && (
+                    <View className="flex-row items-center gap-1">
+                      <Feather name="camera" size={12} color="#11602F" />
+                      <Text className="text-xs font-semibold text-[#11602F]">Con foto de evidencia</Text>
+                    </View>
+                  )}
                 </View>
 
                 <Pressable
@@ -223,6 +238,15 @@ export default function Tareas() {
             );
           })}
       </View>
+      <EvidenciaTareaModal
+        tarea={completando}
+        onClose={() => setCompletando(null)}
+        onCompletada={() => {
+          setCompletando(null);
+          cargar();
+          recargarAlertas();
+        }}
+      />
     </ScrollView>
   );
 }

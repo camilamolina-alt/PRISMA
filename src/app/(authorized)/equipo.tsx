@@ -4,11 +4,13 @@ import {
   hora,
   iniciales,
   leerCierres,
+  leerEvidencias,
   leerProblemas,
   leerPromotores,
   Promotor,
   ReporteCierre,
   ReporteProblema,
+  TareaEvidencia,
   urlFoto,
   urlMapa,
 } from "@/lib/reportes";
@@ -34,7 +36,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const sombraTarjeta = { boxShadow: "0 4px 12px rgba(10, 85, 104, 0.08)" };
 
 type Pestana = "hoy" | "archivo";
-type Carpeta = "cierres" | "problemas";
+type Carpeta = "cierres" | "problemas" | "tareas";
 
 export default function Equipo() {
   const insets = useSafeAreaInsets();
@@ -43,6 +45,7 @@ export default function Equipo() {
   const [promotores, setPromotores] = useState<Promotor[]>([]);
   const [cierres, setCierres] = useState<ReporteCierre[]>([]);
   const [problemas, setProblemas] = useState<ReporteProblema[]>([]);
+  const [evidencias, setEvidencias] = useState<TareaEvidencia[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
 
@@ -55,11 +58,17 @@ export default function Equipo() {
     if (!token) return;
     setError(false);
     try {
-      const [p, c, pr] = await Promise.all([leerPromotores(token), leerCierres(token), leerProblemas(token)]);
+      const [p, c, pr, ev] = await Promise.all([
+        leerPromotores(token),
+        leerCierres(token),
+        leerProblemas(token),
+        leerEvidencias(token).catch((): TareaEvidencia[] => []),
+      ]);
       const delEquipo = new Set(p.map((x) => x.correo));
       setPromotores(p);
       setCierres(c.filter((r) => delEquipo.has(r.correoPromotor)));
       setProblemas(pr.filter((r) => delEquipo.has(r.correoPromotor)));
+      setEvidencias(ev.filter((t) => delEquipo.has(t.correoPromotor)));
     } catch {
       setError(true);
     } finally {
@@ -77,6 +86,7 @@ export default function Equipo() {
 
   const cierresHoy = cierres.filter((c) => esHoy(c.fecha));
   const problemasHoy = problemas.filter((p) => esHoy(p.fecha));
+  const evidenciasHoy = evidencias.filter((t) => esHoy(t.fechaCheck));
   const sinCerrar = promotores.filter((p) => !cierresHoy.some((c) => c.correoPromotor === p.correo));
 
   return (
@@ -173,6 +183,15 @@ export default function Equipo() {
                 ))
               )}
 
+              {evidenciasHoy.length > 0 && (
+                <>
+                  <Titulo texto={`Tareas completadas hoy (${evidenciasHoy.length})`} />
+                  {evidenciasHoy.map((t) => (
+                    <TarjetaTarea key={t.idTarea} tarea={t} nombre={nombreDe(t.correoPromotor)} soloHora onFoto={setFotoGrande} />
+                  ))}
+                </>
+              )}
+
               {sinCerrar.length > 0 && (
                 <View className="rounded-2xl border border-[#F4D9A8] bg-[#FFF8EB] p-4">
                   <Text className="text-sm font-bold text-[#9A5300]">Faltan por cerrar ({sinCerrar.length})</Text>
@@ -186,6 +205,7 @@ export default function Equipo() {
             promotores.map((p) => {
               const susCierres = cierres.filter((c) => c.correoPromotor === p.correo);
               const susProblemas = problemas.filter((x) => x.correoPromotor === p.correo);
+              const susTareas = evidencias.filter((x) => x.correoPromotor === p.correo);
               const estaAbierto = abierto === p.correo;
               return (
                 <View key={p.id} className="rounded-2xl border border-[#DCEBEE] bg-white" style={sombraTarjeta}>
@@ -202,7 +222,7 @@ export default function Equipo() {
                     <View className="flex-1">
                       <Text className="text-base font-bold text-[#0B2A33]">{p.name}</Text>
                       <Text className="text-[13px] text-[#5C7A82]">
-                        {susCierres.length} cierres · {susProblemas.length} problemas
+                        {susCierres.length} cierres · {susProblemas.length} problemas · {susTareas.length} tareas
                       </Text>
                     </View>
                     <Feather name={estaAbierto ? "chevron-up" : "chevron-down"} size={22} color="#5C7A82" />
@@ -223,6 +243,12 @@ export default function Equipo() {
                           texto={`Problemas (${susProblemas.length})`}
                           onPress={() => setCarpeta("problemas")}
                         />
+                        <ChipCarpeta
+                          activo={carpeta === "tareas"}
+                          icono="check-square"
+                          texto={`Tareas (${susTareas.length})`}
+                          onPress={() => setCarpeta("tareas")}
+                        />
                       </View>
 
                       {carpeta === "cierres" ? (
@@ -231,10 +257,16 @@ export default function Equipo() {
                         ) : (
                           susCierres.map((c) => <TarjetaCierre key={c.idReporte} reporte={c} plana onFoto={setFotoGrande} />)
                         )
-                      ) : susProblemas.length === 0 ? (
-                        <Text className="py-2 text-center text-sm text-[#5C7A82]">Sin problemas reportados</Text>
+                      ) : carpeta === "problemas" ? (
+                        susProblemas.length === 0 ? (
+                          <Text className="py-2 text-center text-sm text-[#5C7A82]">Sin problemas reportados</Text>
+                        ) : (
+                          susProblemas.map((x) => <TarjetaProblema key={x.idProblemas} reporte={x} plana onFoto={setFotoGrande} />)
+                        )
+                      ) : susTareas.length === 0 ? (
+                        <Text className="py-2 text-center text-sm text-[#5C7A82]">Sin tareas completadas con foto</Text>
                       ) : (
-                        susProblemas.map((x) => <TarjetaProblema key={x.idProblemas} reporte={x} plana onFoto={setFotoGrande} />)
+                        susTareas.map((x) => <TarjetaTarea key={x.idTarea} tarea={x} plana onFoto={setFotoGrande} />)
                       )}
                     </View>
                   )}
@@ -366,6 +398,51 @@ function TarjetaProblema({ reporte, nombre, soloHora, plana, onFoto }: PropsTarj
           <Text className="text-[13px] text-[#5C7A82]">{soloHora ? hora(reporte.fecha) : fechaLarga(reporte.fecha)}</Text>
         </View>
         <Text className="mt-1 text-sm text-[#3B5760]">{reporte.comentario}</Text>
+      </View>
+    </View>
+  );
+}
+
+function TarjetaTarea({
+  tarea,
+  nombre,
+  soloHora,
+  plana,
+  onFoto,
+}: {
+  tarea: TareaEvidencia;
+  nombre?: string;
+  soloHora?: boolean;
+  plana?: boolean;
+  onFoto: (uri: string) => void;
+}) {
+  const tipo = tarea.tipo === "precio" ? "Cambio de precio" : tarea.tipo === "promo" ? "Promoción" : "Reposición";
+  return (
+    <View
+      className={`flex-row gap-3 rounded-2xl border p-3 ${plana ? "border-[#D3EEDC] bg-[#F5FCF7]" : "border-[#D3EEDC] bg-white"}`}
+      style={plana ? undefined : sombraTarjeta}
+    >
+      <Foto uri={urlFoto(tarea.fotoURL)} onFoto={onFoto} />
+      <View className="flex-1">
+        <View className="flex-row items-center gap-2">
+          {nombre && (
+            <Text className="flex-shrink text-[15px] font-bold text-[#0B2A33]" numberOfLines={1}>
+              {nombre}
+            </Text>
+          )}
+          <View className="rounded-full bg-[#DCF7E5] px-2 py-0.5">
+            <Text className="text-[11px] font-bold text-[#11602F]">{tipo}</Text>
+          </View>
+        </View>
+        <View className="flex-row items-center gap-1.5">
+          <Feather name="clock" size={12} color="#5C7A82" />
+          <Text className="text-[13px] text-[#5C7A82]">{soloHora ? hora(tarea.fechaCheck) : fechaLarga(tarea.fechaCheck)}</Text>
+        </View>
+        <Text className="mt-1 text-sm font-semibold text-[#3B5760]">{tarea.nombreTarea}</Text>
+        <Text className="text-[13px] text-[#5C7A82]">
+          {tarea.tienda.nombre}
+          {tarea.tienda.ubicacion ? ` · ${tarea.tienda.ubicacion}` : ""}
+        </Text>
       </View>
     </View>
   );

@@ -52,7 +52,8 @@
         {
           "locationWhenInUsePermission": "PRISMA usa tu ubicación para registrar dónde cerraste la jornada."
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,

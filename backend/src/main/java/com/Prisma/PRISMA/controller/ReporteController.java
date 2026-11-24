@@ -1,4 +1,6 @@
 package com.Prisma.PRISMA.controller;
+
+import com.Prisma.PRISMA.service.EquipoService;
 import com.Prisma.PRISMA.dto.AlertaDTO;
 import com.Prisma.PRISMA.dto.MensajeDTO;
 import com.Prisma.PRISMA.model.Mensaje;
@@ -30,12 +32,14 @@ public class ReporteController {
     private final UsuarioRepository usuarioRepository;
     private final MensajeRepository mensajeRepository;
     private final SimpMessagingTemplate mensajeria;
-    public ReporteController(ReporteCierreRepository reporteRepository, ReporteProblemaRepository problemaRepository, UsuarioRepository usuarioRepository, MensajeRepository mensajeRepository, SimpMessagingTemplate mensajeria) {
+    private final EquipoService equipoService;
+    public ReporteController(ReporteCierreRepository reporteRepository, ReporteProblemaRepository problemaRepository, UsuarioRepository usuarioRepository, MensajeRepository mensajeRepository, SimpMessagingTemplate mensajeria, EquipoService equipoService) {
         this.reporteRepository = reporteRepository;
         this.problemaRepository = problemaRepository;
         this.usuarioRepository = usuarioRepository;
         this.mensajeRepository = mensajeRepository;
         this.mensajeria = mensajeria;
+        this.equipoService = equipoService;
     }
 
     @PostMapping("/cierre")
@@ -139,7 +143,7 @@ public class ReporteController {
     }
 
     private void avisoSup(String promotor, String texto, String tipo, String fotoURL){
-        List<Usuario>supervisor = usuarioRepository.findByRol("supervisor");
+        List<Usuario>supervisor = equipoService.supervisoresDe(promotor);
         for(Usuario sup : supervisor){
             Mensaje m = new Mensaje();
             m.setRemitente(promotor);

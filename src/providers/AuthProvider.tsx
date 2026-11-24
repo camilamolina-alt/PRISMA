@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { cargarServidor } from "../config/api";
 import {
   createContext,
   ReactNode,
@@ -55,6 +56,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadSession() {
       try {
+        await cargarServidor();
         const [[, savedToken], [, savedRol]] = await AsyncStorage.multiGet([
           "@token",
           "@rol",

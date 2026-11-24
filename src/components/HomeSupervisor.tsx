@@ -114,7 +114,6 @@ export default function HomeSupervisor() {
   const alertasInicio = alertas.slice(0, 2);
 
   // Precios y promos: estatico por ahora
-  // tareas solo de mi equipo
   const tareasEquipo = tareas.filter((t) => promotores.some((p) => p.correo === t.correoPromotor));
   const aplicados = tareasEquipo.filter((t)=>t.checkTarea).length;
   const asignados = tareasEquipo.length;

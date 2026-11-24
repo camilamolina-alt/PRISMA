@@ -11,13 +11,11 @@ import {
   useState,
 } from "react";
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { API_URL } from "../config/api";
+import { API_URL, wsUrl } from "../config/api";
 import { NivelAlerta } from "../data/alertas";
 import { Envio, estadoVisible, fraseLlegada, leerMisEnvios } from "../lib/envios";
 import { useAuthSession } from "./AuthProvider";
 
-// Convierte http://... a ws://.../ws
-const WS_URL = API_URL.replace(/^http/, "ws") + "/ws";
 
 export type AlertaViva = {
   id: string;
@@ -89,6 +87,7 @@ function tituloTarea(tipo?: string) {
   if (tipo === "problema") return "Nuevo reporte de problema";
   if (tipo === "mensaje") return "Nuevo mensaje";
   if (tipo === "rol") return "Cambio de rol";
+  if (tipo === "tareaLista") return "Tarea completada";
   return "Nueva tarea";
 }
 
@@ -134,6 +133,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
   const ruta = usePathname();
   const { correo: correoChat } = useGlobalSearchParams<{ correo?: string }>();
   const enChatCon = useRef<string | undefined>(undefined);
+  const misTiendas = useRef<Set<number> | null>(null);
   useEffect(() => {
     enChatCon.current = ruta === "/conversacion" ? correoChat : undefined;
   }, [ruta, correoChat]);
@@ -157,12 +157,29 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
     };
 
     const esPromotor = rol === "promotor";
-    const [criticos, medios, tareas, envios] = await Promise.all([
+    const esSupervisor = rol === "supervisor";
+    const [criticosTodos, mediosTodos, tareas, envios, asignaciones, equipo] = await Promise.all([
       leer("/api/stock/criticos"),
       leer("/api/stock/medios"),
       esPromotor ? leer("/api/tareas/mio") : Promise.resolve([]),
       esPromotor ? leerMisEnvios(token).catch((): Envio[] => []) : Promise.resolve([] as Envio[]),
+      esPromotor ? leer("/api/asignaciones/mias") : esSupervisor ? leer("/api/asignaciones") : Promise.resolve([]),
+      esSupervisor ? leer("/usuarios/mi-equipo") : Promise.resolve([]),
     ]);
+
+    if (esPromotor || esSupervisor) {
+      const correos = new Set((equipo as any[]).map((u) => u.correo));
+      misTiendas.current = new Set(
+        (asignaciones as any[])
+          .filter((a) => esPromotor || correos.has(a.correoPromotor))
+          .map((a) => a.tienda?.idTienda)
+      );
+    } else {
+      misTiendas.current = null;
+    }
+    const esDeMisTiendas = (s: any) => !misTiendas.current || misTiendas.current.has(s.tienda?.idTienda);
+    const criticos = criticosTodos.filter(esDeMisTiendas);
+    const medios = mediosTodos.filter(esDeMisTiendas);
 
     const vistas = await leerVistas();
     const ahora = new Date().toISOString();
@@ -204,7 +221,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
     recargar();
 
     const client = new Client({
-      brokerURL: WS_URL,
+      brokerURL: wsUrl(),
       connectHeaders: { Authorization: token },
       reconnectDelay: 5000,
       onConnect: () => {
@@ -212,6 +229,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
         client.subscribe("/topic/alertas", (msg) => {
           try {
             const d = JSON.parse(msg.body);
+            if (misTiendas.current && !misTiendas.current.has(d.idTienda)) return;
             const nivelStock = d.nivel === "medio" ? "medio" : "critico";
             const base = `${d.producto}-${d.idTienda}`;
             const nueva: AlertaViva = {
@@ -235,7 +253,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
           try {
             const d = JSON.parse(msg.body);
 
-            if (d.nivel === "reporte" || d.nivel === "problema" || d.nivel === "mensaje" || d.nivel === "rol") {
+            if (d.nivel === "reporte" || d.nivel === "problema" || d.nivel === "mensaje" || d.nivel === "rol" || d.nivel === "tareaLista") {
               const esMensaje = d.nivel === "mensaje";
               if (esMensaje && enChatCon.current === d.producto) return;
               const nueva: AlertaViva = {

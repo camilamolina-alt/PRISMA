@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface TareaRepository extends JpaRepository<Tarea,Long> {
     List<Tarea> findByCorreoPromotorOrderByFechaDesc(String correoPromotor);
+
+    List<Tarea> findByFotoURLIsNotNullOrderByFechaCheckDesc();
 }

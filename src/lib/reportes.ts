@@ -21,6 +21,16 @@ export type ReporteProblema = {
 
 export type Promotor = { id: string; name: string; correo: string; rol: string };
 
+export type TareaEvidencia = {
+  idTarea: number;
+  tipo: string;
+  nombreTarea: string;
+  correoPromotor: string;
+  fotoURL: string;
+  fechaCheck: string;
+  tienda: { nombre: string; ubicacion: string };
+};
+
 async function leer<T>(ruta: string, token: string): Promise<T> {
   const res = await fetch(`${API_URL}${ruta}`, { headers: { Authorization: token } });
   if (!res.ok) throw new Error(`Error ${res.status}`);
@@ -29,6 +39,7 @@ async function leer<T>(ruta: string, token: string): Promise<T> {
 
 export const leerCierres = (token: string) => leer<ReporteCierre[]>("/api/reportes/cierre", token);
 export const leerProblemas = (token: string) => leer<ReporteProblema[]>("/api/reportes/problema", token);
+export const leerEvidencias = (token: string) => leer<TareaEvidencia[]>("/api/tareas/evidencias", token);
 
 export async function leerPromotores(token: string) {
   const usuarios = await leer<Promotor[]>("/usuarios/mi-equipo", token);

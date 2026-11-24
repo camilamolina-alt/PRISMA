@@ -9,6 +9,7 @@ import { useAlertas } from "../providers/AlertaProvider";
 
 import { useAuthSession } from "../providers/AuthProvider";
 import BarcodeScannerModal from "./BarcodeScannerModal";
+import EvidenciaTareaModal, { TareaParaCompletar } from "./EvidenciaTareaModal";
 import ProductoEscaneadoModal, { ProductoEscaneado } from "./ProductoEscaneadoModal";
 
 // TAREAS 
@@ -118,7 +119,14 @@ export default function HomePromotor() {
   // Primero lo pendiente 
   const proximas = [...tareas].sort((a, b) => Number(a.lista) - Number(b.lista)).slice(0, 3);
 
+  const [completando, setCompletando] = useState<TareaParaCompletar | null>(null);
+
   const marcarTarea = (id: number) => {
+    const tarea = tareas.find((t) => t.id === id);
+    if (tarea && !tarea.lista) {
+      setCompletando({ id, titulo: tarea.titulo, tienda: tarea.tienda });
+      return;
+    }
     setTareas((prev) => prev.map((t) => (t.id === id ? { ...t, lista: !t.lista } : t)));
 
     fetch(`${API_URL}/api/tareas/${id}/check`, {
@@ -405,6 +413,15 @@ export default function HomePromotor() {
         onVerProducto={(sku) => {
           setProducto(null);
           router.push(`/productos?sku=${encodeURIComponent(sku)}`);
+        }}
+      />
+      <EvidenciaTareaModal
+        tarea={completando}
+        onClose={() => setCompletando(null)}
+        onCompletada={(id) => {
+          setCompletando(null);
+          setTareas((prev) => prev.map((t) => (t.id === id ? { ...t, lista: true } : t)));
+          recargarAlertas();
         }}
       />
     </ScrollView>

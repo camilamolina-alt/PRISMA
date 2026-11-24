@@ -119,7 +119,7 @@ public class ImportarController {
         reg.setArchivo(archi.getBytes());
 
         try {
-            PromocionLect.Result r = promocionLect.importe(archi);
+            PromocionLect.Result r = promocionLect.importe(archi, auth.getName());
             reg.setOki(true);
             reg.setMensaje("Se importaron " + r.promociones() + " promociones y se crearon " + r.tareas() + " tareas");
         }catch (RuntimeException e){

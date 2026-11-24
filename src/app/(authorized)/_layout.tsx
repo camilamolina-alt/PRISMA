@@ -58,7 +58,6 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Tareas del promotor */}
           <Tabs.Screen
             name="tareas"
             options={{

@@ -30,6 +30,16 @@ public class Tarea {
 
     private LocalDateTime fechaCheck;
 
+    private String fotoURL;
+
+    public String getFotoURL() {
+        return fotoURL;
+    }
+
+    public void setFotoURL(String fotoURL) {
+        this.fotoURL = fotoURL;
+    }
+
     public LocalDateTime getFechaCheck() {
         return fechaCheck;
     }
