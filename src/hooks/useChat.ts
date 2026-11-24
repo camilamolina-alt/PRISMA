@@ -12,6 +12,7 @@ export type Mensaje = {
     contenido: string;
     fecha: string;
     leido: boolean;
+    imagenURL?: string | null;
 };
 
 export function useChat(otro: string) {

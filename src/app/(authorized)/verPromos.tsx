@@ -1,14 +1,15 @@
+import { API_URL } from "@/config/api";
+import { useAuthSession } from "@/providers/AuthProvider";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type TipoPromo = "precio" | "promo" | "evento";
 
-// ORDEN DEL EXCEL (tipo, sku, descripción, precios, cadena, fechas)
 interface Promocion {
   id: number;
   tipo: TipoPromo;
@@ -16,21 +17,36 @@ interface Promocion {
   descripcion: string;
   precioNormal: number | null;
   precioOferta: number | null;
-  tienda: string; // cadena: aplica a todas sus sucursales
-  desde: string; // "AAAA-MM-DD"
+  tienda: string;
+  desde: string;
   hasta: string | null;
 }
 
 // Datos de ejemplo 
-const promociones: Promocion[] = [
-  { id: 1, tipo: "promo", sku: "12345", descripcion: "20% en polerones", precioNormal: 19990, precioOferta: 15990, tienda: "Ripley", desde: "2026-11-10", hasta: "2026-11-20" },
-  { id: 2, tipo: "precio", sku: "55120", descripcion: "Jeans skinny mujer", precioNormal: 24990, precioOferta: 21990, tienda: "Ripley", desde: "2026-11-12", hasta: null },
-  { id: 3, tipo: "evento", sku: null, descripcion: "Black Friday", precioNormal: null, precioOferta: null, tienda: "Ripley", desde: "2026-11-27", hasta: "2026-11-30" },
-  { id: 4, tipo: "precio", sku: "67890", descripcion: "Polera manga larga infantil", precioNormal: 12990, precioOferta: 10490, tienda: "Paris", desde: "2026-11-11", hasta: null },
-  { id: 5, tipo: "promo", sku: "34567", descripcion: "30% zona infantil", precioNormal: 14990, precioOferta: 10490, tienda: "Paris", desde: "2026-11-08", hasta: "2026-11-18" },
-  { id: 6, tipo: "evento", sku: null, descripcion: "Cyber Day", precioNormal: null, precioOferta: null, tienda: "Falabella", desde: "2026-11-30", hasta: "2026-12-02" },
-  { id: 7, tipo: "promo", sku: "78901", descripcion: "2x1 en calcetines", precioNormal: 4990, precioOferta: 2495, tienda: "Falabella", desde: "2026-11-12", hasta: "2026-11-16" },
-];
+// llega de get
+type PromoBD = {
+  idPromo: number;
+  tipo: TipoPromo;
+  tienda: string;
+  sku: string | null;
+  descrip: string;
+  precioNorm: number | null;
+  precioProm: number | null;
+  desde: string;
+  hasta: string | null;
+};
+
+const traducir = (p: PromoBD): Promocion => ({
+  id: p.idPromo,
+  tipo: p.tipo,
+  sku: p.sku,
+  descripcion: p.descrip,
+  precioNormal: p.precioNorm,
+  precioOferta: p.precioProm,
+  tienda: p.tienda,
+  desde: p.desde,
+  hasta: p.hasta,
+});
 
 const estiloTipo: Record<TipoPromo, { texto: string; fondo: string; color: string; icono: keyof typeof Feather.glyphMap }> = {
   precio: { texto: "Precio", fondo: "#E1EBFF", color: "#1F47A8", icono: "dollar-sign" },
@@ -47,11 +63,9 @@ const filtros: { valor: TipoPromo | "todas"; texto: string }[] = [
 
 const sombraTarjeta = { boxShadow: "0 4px 12px rgba(10, 85, 104, 0.08)" };
 
-// 15990 → "$15.990"
 const pesos = (n: number) => "$" + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
 const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-// "2026-11-20" → "20 nov"
 const fechaCorta = (iso: string) => {
   const [, m, d] = iso.split("-");
   return `${Number(d)} ${meses[Number(m) - 1]}`;
@@ -59,19 +73,44 @@ const fechaCorta = (iso: string) => {
 
 export default function VerPromos() {
   const insets = useSafeAreaInsets();
+  const { token } = useAuthSession();
   const [filtro, setFiltro] = useState<TipoPromo | "todas">("todas");
+  const [promociones, setPromociones] = useState<Promocion[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const cargar = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/promociones`, { headers: { Authorization: token } });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const datos: PromoBD[] = await res.json();
+      setPromociones(datos.map(traducir));
+      setError(null);
+    } catch {
+      setError("No se pudieron cargar las promociones");
+    } finally {
+      setCargando(false);
+    }
+  }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [cargar])
+  );
 
   const hoy = new Date().toISOString().slice(0, 10);
-  const visibles = promociones.filter((p) => filtro === "todas" || p.tipo === filtro);
+  const activas = promociones.filter((p) => !p.hasta || p.hasta >= hoy);
+  const visibles = activas.filter((p) => filtro === "todas" || p.tipo === filtro);
 
   const porCadena = visibles.reduce<Record<string, Promocion[]>>((grupos, p) => {
     (grupos[p.tienda] ??= []).push(p);
     return grupos;
   }, {});
 
-  const vigentes = promociones.filter((p) => p.desde <= hoy && (!p.hasta || p.hasta >= hoy)).length;
-  const proximas = promociones.filter((p) => p.desde > hoy).length;
-
+  const vigentes = activas.filter((p) => p.desde <= hoy).length;
+  const proximas = activas.filter((p) => p.desde > hoy).length;
   return (
     <ScrollView className="flex-1 bg-[#EEF6F7]" contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
       <StatusBar style="light" />
@@ -110,7 +149,7 @@ export default function VerPromos() {
         <View className="flex-row gap-3">
           <Resumen numero={vigentes} texto="Vigentes" />
           <Resumen numero={proximas} texto="Próximas" />
-          <Resumen numero={Object.keys(promociones.reduce((s, p) => ({ ...s, [p.tienda]: 1 }), {})).length} texto="Cadenas" />
+          <Resumen numero={Object.keys(activas.reduce((s, p) => ({ ...s, [p.tienda]: 1 }), {})).length} texto="Cadenas" />
         </View>
       </LinearGradient>
 
@@ -139,13 +178,14 @@ export default function VerPromos() {
       </ScrollView>
 
       <View className="mt-5 gap-6 px-5">
-        {Object.keys(porCadena).length === 0 && (
+        {cargando && <ActivityIndicator color="#0B7C8E" style={{ paddingVertical: 32 }} />}
+        {error && <Text className="py-8 text-center text-[15px] text-[#C4202F]">{error}</Text>}
+        {!cargando && !error && Object.keys(porCadena).length === 0 && (
           <Text className="py-8 text-center text-[15px] text-[#3B5760]">No hay promociones de este tipo</Text>
         )}
 
         {Object.entries(porCadena).map(([cadena, lista]) => (
           <View key={cadena} className="gap-3">
-            {/* Encabezado de la cadena */}
             <View className="flex-row items-center gap-3">
               <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#0B7C8E]">
                 <MaterialCommunityIcons name="storefront-outline" size={22} color="white" />

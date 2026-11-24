@@ -1,9 +1,11 @@
 package com.Prisma.PRISMA.controller;
 
+import com.Prisma.PRISMA.model.Promocion;
 import com.Prisma.PRISMA.service.EnvioLectura;
 import com.Prisma.PRISMA.model.Importar;
 import com.Prisma.PRISMA.repository.ImportarRepository;
 import com.Prisma.PRISMA.service.Excellectura;
+import com.Prisma.PRISMA.service.PromocionLect;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -25,11 +27,14 @@ public class ImportarController {
     private final Excellectura excellectura;
     private final ImportarRepository importarRepository;
     private final EnvioLectura envioLectura;
+    private final PromocionLect promocionLect;
 
-    public ImportarController(Excellectura excellectura, ImportarRepository importarRepository, EnvioLectura envioLectura) {
+
+    public ImportarController(Excellectura excellectura, ImportarRepository importarRepository, EnvioLectura envioLectura, PromocionLect promocionLect) {
         this.excellectura = excellectura;
         this.importarRepository = importarRepository;
         this.envioLectura = envioLectura;
+        this.promocionLect = promocionLect;
     }
 
     @PostMapping
@@ -100,7 +105,33 @@ public class ImportarController {
                 ? ResponseEntity.ok(registro.getMensaje())
                 : ResponseEntity.badRequest().body(registro.getMensaje());
     }
+    @PostMapping("/promociones")
+    public ResponseEntity<?> importaPromociones(@RequestParam("archivo") MultipartFile archi, Authentication auth) throws IOException{
+        if (archi.isEmpty()){
+            return ResponseEntity.badRequest().body("No hay archivos");
 
+        }
+        Importar reg = new Importar();
+        reg.setNombreArchivo(archi.getOriginalFilename());
+        reg.setTipo("promociones");
+        reg.setCorreoUsuario(auth.getName());
+        reg.setFecha(LocalDateTime.now());
+        reg.setArchivo(archi.getBytes());
+
+        try {
+            PromocionLect.Result r = promocionLect.importe(archi);
+            reg.setOki(true);
+            reg.setMensaje("Se importaron " + r.promociones() + " promociones y se crearon " + r.tareas() + " tareas");
+        }catch (RuntimeException e){
+            reg.setOki(false);
+            reg.setMensaje(e.getMessage());
+        }catch (Exception e){
+            reg.setOki(false);
+            reg.setMensaje("No se puede leer el archivo. Solo se aceptan Excel");
+        }
+        importarRepository.save(reg);
+        return reg.isOki() ? ResponseEntity.ok(reg.getMensaje()) : ResponseEntity.badRequest().body(reg.getMensaje());
+    }
 
     @GetMapping("/{id}/archivo")
     public ResponseEntity<byte[]> archivo(@PathVariable Long id) {

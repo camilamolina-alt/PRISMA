@@ -6,11 +6,11 @@ import { Platform } from "react-native";
 export type Documento = {
   idImportar: number;
   nombreArchivo: string;
-  tipo: string; // "tiendas" por ahora
+  tipo: string;
   correoUsuario: string;
   mensaje: string | null;
   oki: boolean;
-  fecha: string; // LocalDateTime en ISO, ej "2026-11-12T14:32:05"
+  fecha: string;
 };
 
 export async function leerDocumentos(token: string): Promise<Documento[]> {

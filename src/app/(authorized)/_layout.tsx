@@ -20,7 +20,7 @@ export default function AuthorizedLayout() {
 
 
   const botonVolver = () => (
-    <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 12 }}>
+    <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} style={{ paddingHorizontal: 12 }}>
       <Ionicons name="chevron-back" size={24} color="#208AEF" />
     </Pressable>
   );
@@ -54,6 +54,19 @@ export default function AuthorizedLayout() {
               title: "Inicio",
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="home-outline" size={size} color={color as string} />
+              ),
+            }}
+          />
+
+          {/* Tareas del promotor */}
+          <Tabs.Screen
+            name="tareas"
+            options={{
+              title: "Tareas",
+              headerShown: false,
+              tabBarItemStyle: esSupervisor || esAdmin ? { display: "none" } : undefined,
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="checkbox-outline" size={size} color={color as string} />
               ),
             }}
           />
@@ -152,7 +165,6 @@ export default function AuthorizedLayout() {
 
 
 
-          {/* Gestión de promos/precios/tareas (supervisor) */}
           <Tabs.Screen
             name="promos"
             options={{
@@ -162,7 +174,6 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Documentos: inicio con acciones y recientes (supervisor) */}
           <Tabs.Screen
             name="documentos"
             options={{
@@ -180,7 +191,6 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Documentos: subir planillas Excel (supervisor) */}
           <Tabs.Screen
             name="planillas"
             options={{
@@ -190,7 +200,6 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Seguimiento de carga: envíos desde bodega (supervisor gestiona, promotor ve) */}
           <Tabs.Screen
             name="cargas"
             options={{
@@ -200,7 +209,6 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Reportes del equipo: cierre y problemas de los promotores (supervisor) */}
           <Tabs.Screen
             name="equipo"
             options={{
@@ -210,7 +218,15 @@ export default function AuthorizedLayout() {
             }}
           />
 
-          {/* Ver promociones por cadena (supervisor) */}
+          <Tabs.Screen
+            name="catalogo"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
           <Tabs.Screen
             name="verPromos"
             options={{
@@ -227,16 +243,14 @@ export default function AuthorizedLayout() {
             name="alertas"
             options={{
               title: "Alertas",
-              headerShown: false, // ya tiene su propio header morado
-              tabBarItemStyle: esAdmin ? { display: "none" } : undefined,
+              headerShown: false,
+              tabBarItemStyle: esSupervisor ? undefined : { display: "none" },
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="notifications-outline" size={size} color={color as string} />
               ),
             }}
           />
 
-          {/* Pestaña "Reportes" del promotor: abre el reporte de fin de jornada (/reporte).
-              La pantalla histoChat (del compañero) queda sin uso, por eso se intercepta el toque */}
           <Tabs.Screen
             name="histoChat"
             listeners={{

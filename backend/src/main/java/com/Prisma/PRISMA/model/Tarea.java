@@ -28,6 +28,16 @@ public class Tarea {
     @Column(nullable = false)
     private boolean checkTarea;
 
+    private LocalDateTime fechaCheck;
+
+    public LocalDateTime getFechaCheck() {
+        return fechaCheck;
+    }
+
+    public void setFechaCheck(LocalDateTime fechaCheck) {
+        this.fechaCheck = fechaCheck;
+    }
+
     public LocalDateTime getFecha() {
         return fecha;
     }

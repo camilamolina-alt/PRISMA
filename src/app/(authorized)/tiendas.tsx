@@ -20,7 +20,6 @@ export default function Tiendas() {
   const [tiendas, setTiendas] = useState<Tienda[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Tiendas asignadas al promotor (GET /api/asignaciones/mias)
   const [misTiendas, setMisTiendas] = useState<number[]>([]);
   const [verTodas, setVerTodas] = useState(false);
 

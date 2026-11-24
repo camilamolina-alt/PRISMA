@@ -1,8 +1,10 @@
+import { API_URL } from "@/config/api";
+import { useAuthSession } from "@/providers/AuthProvider";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,29 +13,60 @@ const sombraIcono = (rgb: string) => ({
   boxShadow: `0 4px 10px rgba(${rgb}, 0.3)`,
 });
 
-// TODO: datos estáticos por ahora, después vienen del backend
-const tienda = "Falabella · Mall Plaza Trébol";
-const resumenTienda = [
-  { etiqueta: "Precio", texto: "Cambios de precio aplicados", cantidad: 3, fondo: "#EDE9FE", color: "#5B3FE0" },
-  { etiqueta: "Promo", texto: "Promociones activas", cantidad: 1, fondo: "#FEF3C7", color: "#B45309" },
-  { etiqueta: "Stock", texto: "Productos en estado crítico", cantidad: 2, fondo: "#FEE2E2", color: "#B91C1C" },
-];
+type Conteo = { precio: number; promo: number; stock: number };
+
+const filasResumen = [
+  { clave: "precio", etiqueta: "Precio", texto: "Cambios de precio aplicados", fondo: "#EDE9FE", color: "#5B3FE0" },
+  { clave: "promo", etiqueta: "Promo", texto: "Promociones aplicadas", fondo: "#FEF3C7", color: "#B45309" },
+  { clave: "stock", etiqueta: "Stock", texto: "Productos en estado crítico", fondo: "#FEE2E2", color: "#B91C1C" },
+] as const;
 
 type Jornada = "sin" | "problema";
 
 export default function Reporte() {
   const insets = useSafeAreaInsets();
   const [jornada, setJornada] = useState<Jornada | null>(null);
+  const { token } = useAuthSession();
+  const [tienda, setTienda] = useState("Cargando...");
+  const [conteo, setConteo] = useState<Conteo>({ precio: 0, promo: 0, stock: 0 });
 
-  // hora de salida = la hora en que abre el reporte
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      const leer = (ruta: string) =>
+        fetch(`${API_URL}${ruta}`, { headers: { Authorization: token } })
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => []);
+
+      Promise.all([leer("/api/asignaciones/mias"), leer("/api/tareas/mio")]).then(async ([asignaciones, tareas]) => {
+        const misTiendas = asignaciones.map((a: any) => a.tienda);
+        setTienda(
+          misTiendas.length
+            ? misTiendas.map((t: any) => `${t.nombre} · ${t.ubicacion}`).join(", ")
+            : "Sin tienda asignada"
+        );
+
+        const criticos = await Promise.all(
+          misTiendas.map((t: any) => leer(`/api/stock/tienda/${t.idTienda}/criticos`))
+        );
+
+        setConteo({
+          precio: tareas.filter((t: any) => t.tipo === "precio" && t.checkTarea).length,
+          promo: tareas.filter((t: any) => t.tipo === "promo" && t.checkTarea).length,
+          stock: criticos.flat().length,
+        });
+      });
+    }, [token])
+  );
+
   const horaSalida = new Date().toLocaleTimeString("es-CL", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
   const continuar = () => {
-    if (jornada === "sin") router.push("/reporteSin");
-    if (jornada === "problema") router.push("/reporteProb");
+    if (jornada === "sin") router.push({ pathname: "/reporteSin", params: { tienda } });
+    if (jornada === "problema") router.push({ pathname: "/reporteProb", params: { tienda } });
   };
 
   return (
@@ -59,7 +92,7 @@ export default function Reporte() {
       >
         <View className="flex-row items-center">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
             accessibilityRole="button"
             accessibilityLabel="Volver"
             className="h-11 w-11 items-center justify-center rounded-full border border-[#FFFFFF40] bg-[#FFFFFF26]"
@@ -76,7 +109,6 @@ export default function Reporte() {
           </View>
         </View>
 
-        {/* Barra de progreso: primera mitad llena */}
         <View className="mt-5 flex-row gap-2">
           <View className="h-1.5 flex-1 rounded-full bg-white" />
           <View className="h-1.5 flex-1 rounded-full bg-[#FFFFFF40]" />
@@ -115,7 +147,7 @@ export default function Reporte() {
           className="rounded-3xl border border-[#E4E2EE] bg-white px-4"
           style={sombraTarjeta}
         >
-          {resumenTienda.map((item, i) => (
+          {filasResumen.map((item, i) => (
             <View
               key={item.etiqueta}
               className={`flex-row items-center py-3.5 ${
@@ -136,7 +168,7 @@ export default function Reporte() {
                 </Text>
               </View>
               <Text className="text-xl font-bold" style={{ color: item.color }}>
-                {item.cantidad}
+                {conteo[item.clave]}
               </Text>
             </View>
           ))}
@@ -198,7 +230,6 @@ export default function Reporte() {
   );
 }
 
-// Tarjeta seleccionable de "¿Cómo estuvo la jornada?"
 function OpcionJornada({
   titulo,
   icono,

@@ -232,7 +232,6 @@ function TarjetaEnvio({ envio, esSupervisor, onCambiar }: { envio: Envio; esSupe
 
   return (
     <View className="gap-3 rounded-3xl border border-[#DCEBEE] bg-white p-4" style={sombraTarjeta}>
-      {/* Tienda + estado */}
       <View className="flex-row items-start gap-3">
         <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: estilo.fondo }}>
           <MaterialCommunityIcons name={estilo.icono as any} size={24} color={estilo.color} />

@@ -1,6 +1,5 @@
 import { API_URL } from "@/config/api";
 
-// Tal como los devuelve GET /api/reportes/cierre (entidad ReporteCierre)
 export type ReporteCierre = {
   idReporte: number;
   correoPromotor: string;
@@ -9,10 +8,9 @@ export type ReporteCierre = {
   longitud: number;
   precisionMT: number | null;
   comentario: string | null;
-  fecha: string; // ISO, ej "2026-11-13T18:32:05"
+  fecha: string;
 };
 
-// Tal como los devuelve GET /api/reportes/problema (entidad ReporteProblema)
 export type ReporteProblema = {
   idProblemas: number;
   correoPromotor: string;
@@ -33,16 +31,14 @@ export const leerCierres = (token: string) => leer<ReporteCierre[]>("/api/report
 export const leerProblemas = (token: string) => leer<ReporteProblema[]>("/api/reportes/problema", token);
 
 export async function leerPromotores(token: string) {
-  const usuarios = await leer<Promotor[]>("/usuarios", token);
+  const usuarios = await leer<Promotor[]>("/usuarios/mi-equipo", token);
   return usuarios.filter((u) => u.rol?.toLowerCase() === "promotor");
 }
 
-// La foto se sirve sin login desde /uploads/...
 export const urlFoto = (fotoURL: string) => `${API_URL}${fotoURL}`;
 
 export const urlMapa = (lat: number, lng: number) => `https://www.google.com/maps?q=${lat},${lng}`;
 
-// true si la fecha ISO cae hoy (hora local del teléfono)
 export function esHoy(iso: string) {
   const d = new Date(iso);
   const hoy = new Date();

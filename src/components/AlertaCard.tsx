@@ -9,7 +9,7 @@ const estilos: Record<
   {
     etiqueta: string;
     gradiente: [string, string];
-    sombra: string; // rgb para la sombra del icono
+    sombra: string;
     fondoPill: string;
     textoPill: string;
   }
@@ -45,7 +45,6 @@ function IconoNivel({ nivel }: { nivel: NivelAlerta }) {
 }
 
 
-// Colores de la tarjeta según el rol (lo manda la pantalla de alertas); por defecto, los del promotor
 type TemaTarjeta = { borde: string; tinta: string; gris: string; sombra: string };
 const temaBase: TemaTarjeta = { borde: "#E4E2EE", tinta: "#1B1733", gris: "#6B6787", sombra: "70, 54, 168" };
 

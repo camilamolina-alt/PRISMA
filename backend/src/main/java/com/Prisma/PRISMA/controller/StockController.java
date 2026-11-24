@@ -128,7 +128,6 @@ public class StockController {
         ));
     }
 
-    // Entre la mitad y 3/4 de lo enviado (misma regla que findTodosMedios)
     private boolean esMedio(Stock s) {
         return s.getCant_sala() != null
                 && s.getCant_enviada() != null

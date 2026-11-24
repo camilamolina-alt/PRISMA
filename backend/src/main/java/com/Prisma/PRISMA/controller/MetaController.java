@@ -22,7 +22,6 @@ public class MetaController {
         return metaRepository.findAllByOrderByPeriodoDesc();
     }
 
-    // Promotor: solo las suyas
     @GetMapping("/mias")
     public List<Meta> mias(Authentication auth) {
         return metaRepository.findByCorreoPromotorOrderByPeriodoDesc(auth.getName());

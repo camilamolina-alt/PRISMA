@@ -20,7 +20,6 @@ type TiendaDetalle = {
 
 export default function Detalle() {
   const { token } = useAuthSession();
-  // El id llega desde la lista de tiendas
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [tienda, setTienda] = useState<TiendaDetalle | null>(null);
@@ -59,7 +58,6 @@ export default function Detalle() {
     <ScrollView className="flex-1 bg-[#F5F4FB]">
       <StatusBar style="light" />
 
-      {/* Header iridiscente: buscador + titulo (mismo degradado del inicio) */}
       <LinearGradient
         colors={["#4636A8", "#5743C2", "#4F6FD0", "#3F96C4"]}
         locations={[0, 0.45, 0.8, 1]}
@@ -90,7 +88,6 @@ export default function Detalle() {
       {error && <Text className="mb-3 text-[15px] font-medium text-[#DC2626]">{error}</Text>}
 
       <View className="relative mb-6 rounded-2xl bg-white p-5 border border-[#E4E2EE] shadow-sm">
-        {/* ESTÁTICO por ahora */}
         <View className="absolute right-0 top-0 rounded-bl-xl rounded-tr-2xl border-b border-l border-[#5EEAD4] bg-[#CCFBF1] px-3 py-1">
           <Text className="text-[13px] font-bold text-[#0F766E]">En ruta</Text>
         </View>
@@ -164,7 +161,6 @@ export default function Detalle() {
         Estadística de zona
       </Text>
 
-      {/* Tarjeta Cumplimiento de tareas: ESTÁTICO por ahora */}
       <LinearGradient
         colors={["#5743C2", "#4F6FD0", "#3F96C4"]}
         start={{ x: 0, y: 0 }}
@@ -182,7 +178,6 @@ export default function Detalle() {
         </View>
       </LinearGradient>
 
-      {/* Tarjeta Alertas stock crítico: el número es REAL */}
       <View className="mb-8 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-5">
         <Text className="text-base font-semibold text-[#991B1B]">
           Alertas stock crítico
@@ -191,7 +186,6 @@ export default function Detalle() {
           {String(tienda?.alertasCriticas ?? 0).padStart(2, "0")}
         </Text>
 
-        {/* Comparación con ayer: ESTÁTICO por ahora */}
         <View className="mt-3 flex-row items-center">
           <Feather name="trending-down" size={20} color="#22C55E" />
          </View>

@@ -1,5 +1,6 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -47,7 +48,6 @@ function haceTiempo(fecha: string): string {
 
 import { useAlertas } from "../../providers/AlertaProvider"; // Hook para las alertas 
 
-// Cada rol con su estética: promotor morado/iridiscente, supervisor turquesa (como su Inicio)
 const temas = {
   promotor: {
     fondo: "#F3F2FB",
@@ -91,7 +91,6 @@ export default function Alertas() {
 
   const nuevas = alertas.filter((a) => a.nueva).length;
 
-  // Cuantas hay de cada nivel (para la barra de colores del header)
   const cuenta = {
     critico: alertas.filter((a) => a.nivel === "critico").length,
     retraso: alertas.filter((a) => a.nivel === "retraso").length,
@@ -144,6 +143,16 @@ export default function Alertas() {
 
   
               <View className="flex-row items-center justify-between">
+                {rol === "promotor" && (
+                  <Pressable
+                    onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+                    accessibilityRole="button"
+                    accessibilityLabel="Volver"
+                    className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-[#FFFFFF40] bg-[#FFFFFF26]"
+                  >
+                    <Feather name="chevron-left" size={24} color="white" />
+                  </Pressable>
+                )}
                 <View className="flex-1">
                   <Text className="text-2xl font-extrabold text-white">Alertas</Text>
                   <Text className="mt-0.5 text-sm" style={{ color: t.textoSuave }}>

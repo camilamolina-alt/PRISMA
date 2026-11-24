@@ -19,6 +19,7 @@ public class Usuario {
     private String correo;
     private String contrasena;
     private String rol;
+    private String zona;
 
     public Usuario() {
     }
@@ -59,5 +60,13 @@ public class Usuario {
 
     public void setRol(String rol) {
         this.rol = rol;
+    }
+
+    public String getZona() {
+        return zona;
+    }
+
+    public void setZona(String zona) {
+        this.zona = zona;
     }
 }

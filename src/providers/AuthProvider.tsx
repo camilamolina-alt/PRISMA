@@ -16,6 +16,8 @@ type AuthContextType = {
   isLoading: boolean;
   signIn: (token: string, rol: Rol) => Promise<void>;
   signOut: () => Promise<void>;
+  correo: string | null;
+  actualizarRol: (nuevo: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,9 +26,22 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   signIn: async () => {},
   signOut: async () => {},
+  correo: null,
+  actualizarRol: async () => {},
 });
 
-// Hook para leer la sesión desde cualquier pantalla
+const aRol = (valor: string | null): Rol =>
+  valor === "supervisor" ? "supervisor" : valor === "admin" ? "admin" : "promotor";
+
+function correoDelToken(token: string | null) {
+  if (!token) return null;
+  try {
+    return atob(token.replace("Basic ", "")).split(":")[0];
+  } catch {
+    return null;
+  }
+}
+
 export function useAuthSession() {
   return useContext(AuthContext);
 }
@@ -76,8 +91,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
   }, []);
 
+  const actualizarRol = useCallback(async (nuevo: string) => {
+    const r = aRol(nuevo);
+    await AsyncStorage.setItem("@rol", r);
+    setRol(r);
+  }, []);
+
+  const correo = correoDelToken(token);
+
   return (
-    <AuthContext.Provider value={{ token, rol, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ token, rol, isLoading, signIn, signOut, correo, actualizarRol }}>
       {children}
     </AuthContext.Provider>
   );

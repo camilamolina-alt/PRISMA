@@ -34,10 +34,8 @@ export default function BarcodeScannerModal({
     if (scanned) return;
     setScanned(true);
 
-    // Llama al callback con el código detectado
     onScanSuccess(result.data, result.type);
 
-    // Reinicia el estado de escaneo después de cerrar
     setTimeout(() => setScanned(false), 500);
   };
 

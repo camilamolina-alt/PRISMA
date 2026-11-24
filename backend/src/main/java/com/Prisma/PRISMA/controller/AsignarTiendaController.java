@@ -17,7 +17,6 @@ public class AsignarTiendaController {
     private final AsignarTiendaRepository asignarTiendaRepository;
     private final TiendaRepository tiendaRepository;
 
-    // El constructor se llama igual que la CLASE (Controller), no que el repository
     public AsignarTiendaController(AsignarTiendaRepository asignarTiendaRepository, TiendaRepository tiendaRepository) {
         this.asignarTiendaRepository = asignarTiendaRepository;
         this.tiendaRepository = tiendaRepository;

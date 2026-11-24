@@ -25,7 +25,6 @@ public class MeController {
 
     @GetMapping
     public ResponseEntity<MeResponse> yo(Authentication auth) {
-        // auth.getName() es el correo con el que iniciaste sesión
         return usuarioRepository.findByCorreo(auth.getName())
                 .map(u -> ResponseEntity.ok(new MeResponse(u.getNombre(), u.getCorreo(), u.getRol())))
                 .orElse(ResponseEntity.notFound().build());

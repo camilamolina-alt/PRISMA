@@ -47,7 +47,7 @@ export default function Equipo() {
   const [error, setError] = useState(false);
 
   const [pestana, setPestana] = useState<Pestana>("hoy");
-  const [abierto, setAbierto] = useState<string | null>(null); // correo del promotor abierto en el archivo
+  const [abierto, setAbierto] = useState<string | null>(null);
   const [carpeta, setCarpeta] = useState<Carpeta>("cierres");
   const [fotoGrande, setFotoGrande] = useState<string | null>(null);
 
@@ -56,9 +56,10 @@ export default function Equipo() {
     setError(false);
     try {
       const [p, c, pr] = await Promise.all([leerPromotores(token), leerCierres(token), leerProblemas(token)]);
+      const delEquipo = new Set(p.map((x) => x.correo));
       setPromotores(p);
-      setCierres(c);
-      setProblemas(pr);
+      setCierres(c.filter((r) => delEquipo.has(r.correoPromotor)));
+      setProblemas(pr.filter((r) => delEquipo.has(r.correoPromotor)));
     } catch {
       setError(true);
     } finally {
@@ -72,7 +73,6 @@ export default function Equipo() {
     }, [cargar])
   );
 
-  // correo -> nombre (si el promotor fue borrado, mostramos el correo)
   const nombreDe = (correo: string) => promotores.find((p) => p.correo === correo)?.name ?? correo;
 
   const cierresHoy = cierres.filter((c) => esHoy(c.fecha));
@@ -155,7 +155,6 @@ export default function Equipo() {
             <Vacio icono="wifi-off" titulo="No se pudieron cargar los reportes" texto="Revisa tu conexión y desliza hacia abajo para reintentar" />
           ) : pestana === "hoy" ? (
             <>
-              {/* Problemas de hoy primero: son lo urgente */}
               {problemasHoy.length > 0 && (
                 <>
                   <Titulo texto={`Problemas reportados (${problemasHoy.length})`} />
@@ -211,7 +210,6 @@ export default function Equipo() {
 
                   {estaAbierto && (
                     <View className="gap-3 border-t border-[#EEF3F4] p-4">
-                      {/* Dos carpetas: cierres y problemas */}
                       <View className="flex-row gap-2">
                         <ChipCarpeta
                           activo={carpeta === "cierres"}
@@ -311,7 +309,6 @@ function ChipCarpeta({
   );
 }
 
-// "plana" = dentro del archivo (sin sombra ni nombre); si no, tarjeta suelta con nombre del promotor
 type PropsTarjeta<T> = { reporte: T; nombre?: string; soloHora?: boolean; plana?: boolean; onFoto: (uri: string) => void };
 
 function TarjetaCierre({ reporte, nombre, soloHora, plana, onFoto }: PropsTarjeta<ReporteCierre>) {

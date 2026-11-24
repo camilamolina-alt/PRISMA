@@ -2,7 +2,6 @@ package com.Prisma.PRISMA.model;
 
 import jakarta.persistence.*;
 
-// Una fila de la planilla de metas: un promotor, en una tienda y departamento, en un mes
 @Entity
 public class Meta {
     @Id
@@ -18,7 +17,7 @@ public class Meta {
     private String departamento;
 
     @Column(nullable = false)
-    private String periodo; // "2026-11"
+    private String periodo;
 
     private Long meta;
     private Long venta;

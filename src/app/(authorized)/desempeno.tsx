@@ -1,3 +1,4 @@
+import Metas from "@/components/metas";
 import { API_URL } from "@/config/api";
 import { useAuthSession } from "@/providers/AuthProvider";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -13,7 +14,7 @@ type Meta = {
   correoPromotor: string;
   tienda: { idTienda: number; nombre: string; ubicacion: string };
   departamento: string;
-  periodo: string; // "2026-11"
+  periodo: string;
   meta: number;
   venta: number;
   bono: number;
@@ -43,7 +44,6 @@ function pesosCortos(valor: number) {
   return formatearPesos(valor);
 }
 
-// "2026-11" -> "Nov 2026"
 function nombrePeriodo(periodo: string) {
   const [anio, mes] = periodo.split("-").map(Number);
   const texto = new Date(anio, mes - 1, 1).toLocaleDateString("es-CL", { month: "short" }).replace(".", "");
@@ -81,7 +81,7 @@ export default function Desempeno() {
   const [error, setError] = useState(false);
 
   const [periodoElegido, setPeriodoElegido] = useState<string | null>(null);
-  const [seleccionado, setSeleccionado] = useState<string | null>(null); // correo
+  const [seleccionado, setSeleccionado] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     if (!token) return;
@@ -90,12 +90,15 @@ export default function Desempeno() {
       const headers = { Authorization: token };
       const [resMetas, resUsuarios] = await Promise.all([
         fetch(`${API_URL}/api/metas`, { headers }),
-        fetch(`${API_URL}/usuarios`, { headers }),
+        fetch(`${API_URL}/usuarios/mi-equipo`, { headers }),
       ]);
       if (!resMetas.ok || !resUsuarios.ok) throw new Error();
-      setMetas(await resMetas.json());
       const usuarios: Usuario[] = await resUsuarios.json();
-      setPromotores(usuarios.filter((u) => u.rol?.toLowerCase() === "promotor"));
+      const equipo = usuarios.filter((u) => u.rol?.toLowerCase() === "promotor");
+      const delEquipo = new Set(equipo.map((u) => u.correo));
+      const todas: Meta[] = await resMetas.json();
+      setMetas(todas.filter((m) => delEquipo.has(m.correoPromotor)));
+      setPromotores(equipo);
     } catch {
       setError(true);
     } finally {
@@ -188,6 +191,7 @@ export default function Desempeno() {
       </LinearGradient>
 
       <View className="-mt-9 gap-6 px-4 pb-10">
+        <Metas />
         {cargando ? (
           <ActivityIndicator color="#0A6D7D" style={{ marginTop: 48 }} />
         ) : error ? (

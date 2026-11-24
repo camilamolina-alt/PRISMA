@@ -10,6 +10,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -46,6 +50,60 @@ public class ProductoController {
                 return ResponseEntity.internalServerError().body("No se pudo guardar la imagen");
             }
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/catalogo")
+    public ResponseEntity<?> subirCatalogo(@RequestParam("imagenes") List<MultipartFile> imagenes) {
+        if (imagenes == null || imagenes.isEmpty()) {
+            return ResponseEntity.badRequest().body("No hay imágenes");
+        }
+
+        int asociadas = 0;
+        List<String> sinProducto = new ArrayList<>();
+        List<String> invalidas = new ArrayList<>();
+
+        try {
+            Path carpeta = Path.of("uploads", "productos");
+            Files.createDirectories(carpeta);
+
+            for (MultipartFile imagen : imagenes) {
+                String original = imagen.getOriginalFilename() == null ? "" : imagen.getOriginalFilename();
+                int punto = original.lastIndexOf('.');
+                if (imagen.isEmpty() || punto <= 0) {
+                    invalidas.add(original);
+                    continue;
+                }
+
+                String sku = original.substring(0, punto).trim();
+                String extens = original.substring(punto + 1).toLowerCase();
+                if (extens.equals("jpeg")) extens = "jpg";
+                if (!extens.equals("jpg") && !extens.equals("png") && !extens.equals("webp")) {
+                    invalidas.add(original);
+                    continue;
+                }
+
+                Optional<Producto> encontrado = productRepository.findBySku(sku);
+                if (encontrado.isEmpty()) {
+                    sinProducto.add(original);
+                    continue;
+                }
+
+                Producto producto = encontrado.get();
+                String nombre = producto.getIdProducto() + "-" + System.currentTimeMillis() + "." + extens;
+                Files.copy(imagen.getInputStream(), carpeta.resolve(nombre));
+                producto.setImageUrl("/uploads/productos/" + nombre);
+                productRepository.save(producto);
+                asociadas++;
+            }
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("No se pudieron guardar las imágenes");
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "asociadas", asociadas,
+                "sinProducto", sinProducto,
+                "invalidas", invalidas
+        ));
     }
 
     @GetMapping("/sku/{sku}")

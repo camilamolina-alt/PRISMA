@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 
@@ -44,7 +45,8 @@ public class ReporteController {
             @RequestParam("latitud") double latitud,
             @RequestParam("longitud") double longitud,
             @RequestParam(value = "comentario", required = false) String comentario,
-            @RequestParam(value = "precision", required = false) Integer precision
+            @RequestParam(value = "precision", required = false) Integer precision,
+            @RequestParam(value = "tienda", required = false) String tienda
 
     ) {
         if (foto.isEmpty()) {
@@ -73,9 +75,12 @@ public class ReporteController {
             reporte.setFotoURL("/uploads/reportes/" + nombre);
 
             ReporteCierre guardado = reporteRepository.save(reporte);
-            avisoSup(auth.getName(),
-                    "Reporte de cierre: " + (comentario == null || comentario.isBlank() ? "sin comentario" : comentario),
-                    "reporte");
+            String hora = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+            String texto = "Terminé mi jornada"
+                    + (tienda == null || tienda.isBlank() ? "" : " en " + tienda)
+                    + " · " + hora
+                    + (comentario == null || comentario.isBlank() ? "" : "\n" + comentario);
+            avisoSup(auth.getName(), texto, "reporte", guardado.getFotoURL());
             return ResponseEntity.ok(guardado);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("No se pudo guardar la foto");
@@ -113,7 +118,7 @@ public class ReporteController {
            problema.setFotoURL("/uploads/problema/" + nombre);
 
             ReporteProblema guardado = problemaRepository.save(problema);
-            avisoSup(auth.getName(), "Reporte de problema: " + comentario, "problema");
+            avisoSup(auth.getName(), "Reporte de problema: " + comentario, "problema", guardado.getFotoURL());
             return ResponseEntity.ok(guardado);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("No se pudo guardar la foto");
@@ -121,27 +126,26 @@ public class ReporteController {
         }
     }
 
-    // Lista de cierres (supervisor). Con ?correo= solo los de ese promotor
     @GetMapping("/cierre")
     public List<ReporteCierre> listarCierres(@RequestParam(value = "correo", required = false) String correo) {
         if (correo != null && !correo.isBlank()) return reporteRepository.findByCorreoPromotorOrderByFechaDesc(correo);
         return reporteRepository.findAllByOrderByFechaDesc();
     }
 
-    // Lista de problemas (supervisor). Con ?correo= solo los de ese promotor
     @GetMapping("/problema")
     public List<ReporteProblema> listarProblemas(@RequestParam(value = "correo", required = false) String correo) {
         if (correo != null && !correo.isBlank()) return problemaRepository.findByCorreoPromotorOrderByFechaDesc(correo);
         return problemaRepository.findAllByOrderByFechaDesc();
     }
 
-    private void avisoSup(String promotor, String texto, String tipo){
+    private void avisoSup(String promotor, String texto, String tipo, String fotoURL){
         List<Usuario>supervisor = usuarioRepository.findByRol("supervisor");
         for(Usuario sup : supervisor){
             Mensaje m = new Mensaje();
             m.setRemitente(promotor);
             m.setReceptor(sup.getCorreo());
             m.setContenido(texto);
+            m.setImagenURL(fotoURL);
             MensajeDTO dto = MensajeDTO.from(mensajeRepository.save(m));
 
             mensajeria.convertAndSendToUser(sup.getCorreo(), "/queue/mensajes", dto);

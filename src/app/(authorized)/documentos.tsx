@@ -16,7 +16,6 @@ export default function Documentos() {
   const { token } = useAuthSession();
   const [recientes, setRecientes] = useState<Documento[]>([]);
 
-  // recarga cada vez que se vuelve a esta pantalla (ej. después de subir una planilla)
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
@@ -78,7 +77,6 @@ export default function Documentos() {
       </LinearGradient>
 
       <View className="-mt-6 gap-4 px-5">
-        {/* Dos acciones principales */}
         <View className="flex-row gap-3">
           {acciones.map((a) => (
             <Pressable

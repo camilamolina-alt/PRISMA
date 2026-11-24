@@ -3,6 +3,7 @@ package com.Prisma.PRISMA;
 import com.Prisma.PRISMA.repository.UsuarioRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.Customizer;
@@ -28,6 +29,11 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
+                        .requestMatchers(HttpMethod.PUT, "/usuarios/*/rol").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/usuarios/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/usuarios/*/zona").hasRole("ADMIN")
+                        .requestMatchers("/usuarios/mi-equipo").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/productos/catalogo").hasRole("ADMIN")
                         .requestMatchers("/usuarios/**").permitAll()
                         .requestMatchers("/api/tiendas/**").authenticated()
                         .requestMatchers("/api/me").authenticated()
@@ -38,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/asignaciones/**").authenticated()
                         .requestMatchers("/api/metas/**").authenticated()
                         .requestMatchers("/api/envios/**").authenticated()
+                        .requestMatchers("/api/promociones/**").authenticated()
+                        .requestMatchers("/api/indicadores/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults());
 

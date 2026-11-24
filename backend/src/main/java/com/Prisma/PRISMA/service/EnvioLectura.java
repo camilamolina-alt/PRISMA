@@ -72,7 +72,9 @@ public class EnvioLectura {
                             return envioRepository.save(nuevo);
                         });
 
-                EnvioDetalle detalle = new EnvioDetalle();
+                EnvioDetalle detalle = envioDetalleRepository
+                        .findByEnvio_IdEnvioAndProducto_Sku(envio.getIdEnvio(), plu)
+                        .orElseGet(EnvioDetalle::new);
                 detalle.setEnvio(envio);
                 detalle.setProducto(producto);
                 detalle.setCantidad(cantidad);

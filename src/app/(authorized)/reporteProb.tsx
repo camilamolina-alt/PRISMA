@@ -4,13 +4,14 @@ import { useAuthSession } from "@/providers/AuthProvider";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -27,6 +28,7 @@ const sombraIcono = (rgb: string) => ({
 
 export default function ReporteSin() {
   const { token } = useAuthSession();
+  const { tienda } = useLocalSearchParams<{ tienda?: string }>();
   const insets = useSafeAreaInsets();
   const [imagen, setImagen] = useState<ImagePicker.ImagePickerAsset | null>(
     null,
@@ -62,11 +64,15 @@ export default function ReporteSin() {
     try {
       const formulario = new FormData();
 
-      formulario.append("foto", {
-        uri: imagen.uri,
-        name: imagen.fileName ?? "cierre.jpg",
-        type: imagen.mimeType ?? "image/jpeg",
-      } as any);
+      if (Platform.OS === "web" && imagen.file) {
+        formulario.append("foto", imagen.file);
+      } else {
+        formulario.append("foto", {
+          uri: imagen.uri,
+          name: imagen.fileName ?? "cierre.jpg",
+          type: imagen.mimeType ?? "image/jpeg",
+        } as any);
+      }
 
 
       formulario.append("comentario", comentario);
@@ -98,9 +104,14 @@ export default function ReporteSin() {
       setImagen(null);
       setComentario("");
 
-      Alert.alert("Listo", "Problema Listo ", [
-        { text: "OK", onPress: () => router.replace("/reporteSin") },
-      ]);
+      if (Platform.OS === "web") {
+        window.alert("Problema enviado");
+        router.replace({ pathname: "/reporteSin", params: { tienda } });
+      } else {
+        Alert.alert("Listo", "Problema enviado", [
+          { text: "OK", onPress: () => router.replace({ pathname: "/reporteSin", params: { tienda } }) },
+        ]);
+      }
     } catch (error: any) {
       Alert.alert(
         "Error al enviar",
@@ -137,7 +148,7 @@ export default function ReporteSin() {
       >
         <View className="flex-row items-center">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/reporte"))}
             accessibilityRole="button"
             accessibilityLabel="Volver"
             className="h-11 w-11 items-center justify-center rounded-full border border-[#FFFFFF40] bg-[#FFFFFF26]"

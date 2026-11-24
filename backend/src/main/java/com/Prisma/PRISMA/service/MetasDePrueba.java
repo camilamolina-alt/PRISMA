@@ -57,7 +57,7 @@ public class MetasDePrueba implements CommandLineRunner {
             double talento = 0.75 + azar.nextDouble() * 0.45;
 
             for (int mes = 0; mes < 4; mes++) {
-                String periodo = YearMonth.now().minusMonths(mes).toString(); // "2026-11"
+                String periodo = YearMonth.now().minusMonths(mes).toString();
                 for (Tienda t : tiendas) {
                     for (String depto : DEPARTAMENTOS) {
                         long meta = (1 + azar.nextInt(9)) * 1_000_000L;
@@ -71,7 +71,6 @@ public class MetasDePrueba implements CommandLineRunner {
                         m.setPeriodo(periodo);
                         m.setMeta(meta);
                         m.setVenta(venta);
-                        // Como en la planilla: sin cumplir la meta no hay bono
                         m.setBono(venta >= meta ? (20 + azar.nextInt(5) * 5) * 1000L : 0L);
                         nuevas.add(m);
                     }

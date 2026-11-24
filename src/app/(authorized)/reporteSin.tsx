@@ -5,13 +5,14 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -28,6 +29,7 @@ const sombraIcono = (rgb: string) => ({
 
 export default function ReporteSin() {
   const { token } = useAuthSession();
+  const { tienda } = useLocalSearchParams<{ tienda?: string }>();
   const insets = useSafeAreaInsets();
   const [imagen, setImagen] = useState<ImagePicker.ImagePickerAsset | null>(
     null,
@@ -96,7 +98,6 @@ export default function ReporteSin() {
     ? Math.round(ubicacion.coords.accuracy)
     : null;
 
-  // verde si la ubicación es buena 30 m, naranjo si es más imprecisa
   const precisionBuena = precision !== null && precision <= 30;
 
   const manejarSubmit = async () => {
@@ -123,11 +124,16 @@ export default function ReporteSin() {
     try {
       const formulario = new FormData();
 
-      formulario.append("foto", {
-        uri: imagen.uri,
-        name: imagen.fileName ?? "cierre.jpg",
-        type: imagen.mimeType ?? "image/jpeg",
-      } as any);
+      if (Platform.OS === "web" && imagen.file) {
+        formulario.append("foto", imagen.file);
+      } else {
+        formulario.append("foto", {
+          uri: imagen.uri,
+          name: imagen.fileName ?? "cierre.jpg",
+          type: imagen.mimeType ?? "image/jpeg",
+        } as any);
+      }
+      if (tienda) formulario.append("tienda", tienda);
 
       formulario.append("latitud", ubicacion.coords.latitude.toString());
       formulario.append("longitud", ubicacion.coords.longitude.toString());
@@ -165,10 +171,14 @@ export default function ReporteSin() {
       setImagen(null);
       setComentario("");
       setConfirmado(false);
-      // Al apretar OK vuelve al inicio
-      Alert.alert("Listo", "Jornada lista y reporte enviado", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      if (Platform.OS === "web") {
+        window.alert("Jornada lista y reporte enviado");
+        router.replace("/");
+      } else {
+        Alert.alert("Listo", "Jornada lista y reporte enviado", [
+          { text: "OK", onPress: () => router.replace("/") },
+        ]);
+      }
     } catch (error: any) {
       Alert.alert(
         "Error al enviar",
@@ -205,7 +215,7 @@ export default function ReporteSin() {
       >
         <View className="flex-row items-center">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/reporte"))}
             accessibilityRole="button"
             accessibilityLabel="Volver"
             className="h-11 w-11 items-center justify-center rounded-full border border-[#FFFFFF40] bg-[#FFFFFF26]"
@@ -310,7 +320,6 @@ export default function ReporteSin() {
               </>
             )}
 
-            {/* Botón para volver a pedir la ubicación */}
             <Pressable
               onPress={agarrarUbi}
               disabled={cargaUbi}

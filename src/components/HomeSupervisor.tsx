@@ -1,11 +1,13 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { PieChart } from "react-native-gifted-charts";
 import { API_URL } from "../config/api";
 import { NivelAlerta } from "../data/alertas";
+import { Indicadores, leerIndicadores } from "../lib/indicadores";
 import { useAlertas } from "../providers/AlertaProvider";
 import { useAuthSession } from "../providers/AuthProvider";
 
@@ -31,10 +33,8 @@ function IconoAlerta({ nivel, color }: { nivel: NivelAlerta; color: string }) {
   return <Feather name="check-square" size={20} color={color} />;
 }
 
-// Colores del prisma para la barra de "aplicados en tienda"
 const coloresBarra = ["#8B7CFF", "#4FA8F5", "#2FCFC4", "#6EDC9E"] as const;
 
-// Sombras suaves (mismo valor en todas las tarjetas para que se vean coherentes)
 const sombraTarjeta = { boxShadow: "0 4px 12px rgba(10, 85, 104, 0.08)" };
 const sombraIcono = (rgb: string) => ({ boxShadow: `0 4px 10px rgba(${rgb}, 0.3)` });
 
@@ -47,7 +47,7 @@ export default function HomeSupervisor() {
   const [nombre, setNombre] = useState<string | null>(null);
   const[promotores, setPromotores] = useState<UsuarioDTO[]>([]);
   const [totalPromotores, setTotalPromotores] = useState<number>(0);
-  const [activosPromotores, setActivosPromotores] = useState<number>(0);
+  const [indicadores, setIndicadores] = useState<Indicadores | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -63,7 +63,7 @@ export default function HomeSupervisor() {
       .catch(() => { });
 
     // Calculo de promotores
-    fetch(`${API_URL}/usuarios`, { headers })
+    fetch(`${API_URL}/usuarios/mi-equipo`, { headers })
       .then((res) => (res.ok ? res.json() : []))
       .then((usuarios: UsuarioDTO[]) => {
 
@@ -72,15 +72,22 @@ export default function HomeSupervisor() {
         );
         setTotalPromotores(promotores.length);
         setPromotores(promotores);
-        setActivosPromotores(promotores.length);
       })
       .catch((err) => console.error("Error al cargar promotores:", err));
-
-    fetch(`${API_URL}/api/tareas`, { headers })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data: TareaApi[]) => setTareas(data))
-      .catch(() => { });
   }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      leerIndicadores(token)
+        .then(setIndicadores)
+        .catch(() => { });
+      fetch(`${API_URL}/api/tareas`, { headers: { Authorization: token } })
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: TareaApi[]) => setTareas(data))
+        .catch(() => { });
+    }, [token])
+  );
 
 
 
@@ -104,21 +111,25 @@ export default function HomeSupervisor() {
   });
 
   const nuevas = alertas.filter((a) => a.nueva).length;
-  // En el inicio solo las 2 primeras, el resto en "Ver todas"
   const alertasInicio = alertas.slice(0, 2);
 
   // Precios y promos: estatico por ahora
-  const aplicados = tareas.filter((t)=>t.checkTarea).length;
-  const asignados = tareas.length;
+  // tareas solo de mi equipo
+  const tareasEquipo = tareas.filter((t) => promotores.some((p) => p.correo === t.correoPromotor));
+  const aplicados = tareasEquipo.filter((t)=>t.checkTarea).length;
+  const asignados = tareasEquipo.length;
   const faltan = promotores
   .filter((p) => tareas.some((t) => t.correoPromotor === p.correo && !t.checkTarea))
   .map((p) => p.name);
+
+  const cumplimiento = indicadores?.zona.porcentaje ?? 0;
+  const activosPromotores = indicadores?.rutas.filter((r) => r.visitadas > 0).length ?? 0;
+  const stockCritico = indicadores?.stockCritico;
 
   return (
     <ScrollView className="flex-1 bg-[#EEF6F7]">
       <StatusBar style="light" />
 
-      {/* Header turquesa: perfil + resumen del equipo */}
       <LinearGradient
         colors={["#0A5568", "#0B7C8E", "#0EA5B0", "#3BCBC3"]}
         locations={[0, 0.42, 0.78, 1]}
@@ -162,16 +173,18 @@ export default function HomeSupervisor() {
           </Pressable>
         </View>
 
-        {/* Resumen a lo largo (como la ruta del promotor): metas (estatico por ahora) + promotores en ruta (BD) */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Metas del equipo 78 por ciento, ${activosPromotores} de ${totalPromotores} promotores en ruta`}
+          accessibilityLabel={`Cumplimiento de la zona ${cumplimiento} por ciento, ${activosPromotores} de ${totalPromotores} promotores en ruta`}
           className="flex-row items-center justify-between rounded-[20px] border border-[#FFFFFF33] bg-[#FFFFFF1F] px-5 py-4"
           onPress={() => router.push("/desempeno")}
         >
           <View>
-            <Text className="text-[15px] font-semibold text-[#D4F5F4]">Metas del equipo</Text>
-            <Text className="text-[32px] font-extrabold text-white">78%</Text>
+            <Text className="text-[15px] font-semibold text-[#D4F5F4]">Cumplimiento de la zona</Text>
+            <Text className="text-[32px] font-extrabold text-white">{cumplimiento}%</Text>
+            <Text className="text-sm text-[#E6FAF9]">
+              {indicadores ? `${indicadores.zona.completadas} de ${indicadores.zona.asignadas} tareas hoy` : "Cargando..."}
+            </Text>
             <View className="mt-1 flex-row items-center gap-1.5">
               <Ionicons name="location-outline" size={16} color="#E6FAF9" />
               <Text className="text-sm text-[#E6FAF9]">
@@ -179,12 +192,22 @@ export default function HomeSupervisor() {
               </Text>
             </View>
           </View>
-          <View className="h-16 w-16 rounded-full border-[7px] border-[#FFFFFF40] border-t-[#8B7CFF] border-r-[#4FC8E8] border-b-[#6EDC9E]" />
+          <PieChart
+            donut
+            radius={36}
+            innerRadius={26}
+            innerCircleColor="#FFFFFF"
+            data={[
+              { value: cumplimiento, color: "#6EDC9E", gradientCenterColor: "#2FCFC4" },
+              { value: Math.max(100 - cumplimiento, 0), color: "#FFFFFF40" },
+            ]}
+            showGradient
+            centerLabelComponent={() => <Feather name="check-square" size={20} color="#0A6D7D" />}
+          />
         </Pressable>
       </LinearGradient>
 
       <View className="-mt-9 gap-6 px-4 pb-10">
-        {/* Precios y promos de hoy: lo principal del supervisor */}
         <View
           className="gap-4 rounded-3xl border border-[#DCEBEE] bg-white p-5"
           style={{ boxShadow: "0 10px 24px rgba(10, 85, 104, 0.14)" }}
@@ -212,7 +235,6 @@ export default function HomeSupervisor() {
                 <Text className="text-sm font-normal text-[#3B5760]"> de {asignados}</Text>
               </Text>
             </View>
-            {/* Barra continua: se llena según el % aplicado (funciona igual con 2 o con 50 tareas) */}
             <View
               accessible
               accessibilityLabel={`${aplicados} de ${asignados} tareas aplicadas`}
@@ -263,7 +285,6 @@ export default function HomeSupervisor() {
           </View>
         </View>
 
-        {/* Accesos directos: 3 en fila, igual que las acciones rapidas del promotor */}
         <View className="gap-3">
           <Text className="text-base font-bold text-[#10262E]">Accesos directos</Text>
           <View className="flex-row gap-3">
@@ -293,7 +314,6 @@ export default function HomeSupervisor() {
           </View>
         </View>
 
-        {/* Alertas: al final y discretas (las del AlertaProvider) */}
         <View className="gap-3">
           <View className="flex-row items-center justify-between">
             <Text className="text-base font-bold text-[#10262E]">Alertas</Text>
@@ -301,6 +321,39 @@ export default function HomeSupervisor() {
               <Text className="text-[15px] font-bold text-[#0A6D7D]">Ver todas ({alertas.length})</Text>
             </Pressable>
           </View>
+
+          {stockCritico && (
+            <View
+              accessible
+              accessibilityLabel={`${stockCritico.hoy} productos con stock crítico${stockCritico.variacion !== null ? `, ${stockCritico.variacion} por ciento respecto a ayer` : ""}`}
+              className="flex-row items-center gap-3 rounded-2xl border border-[#DCEBEE] bg-white p-4"
+              style={sombraTarjeta}
+            >
+              <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#FDECEC]">
+                <MaterialCommunityIcons name="package-variant-remove" size={22} color="#C4202F" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[15px] font-bold text-[#10262E]">Stock crítico</Text>
+                <Text className="text-sm text-[#3B5760]">
+                  {stockCritico.variacion === null
+                    ? "Sin datos de ayer para comparar"
+                    : stockCritico.variacion === 0
+                      ? `Igual que ayer (${stockCritico.ayer})`
+                      : `${stockCritico.variacion > 0 ? "Subió" : "Bajó"} ${Math.abs(stockCritico.variacion)}% respecto a ayer (${stockCritico.ayer})`}
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-1">
+                {stockCritico.variacion !== null && stockCritico.variacion !== 0 && (
+                  <Feather
+                    name={stockCritico.variacion > 0 ? "trending-up" : "trending-down"}
+                    size={18}
+                    color={stockCritico.variacion > 0 ? "#C4202F" : "#11602F"}
+                  />
+                )}
+                <Text className="text-2xl font-extrabold text-[#C4202F]">{stockCritico.hoy}</Text>
+              </View>
+            </View>
+          )}
 
           <View className="rounded-2xl border border-[#DCEBEE] bg-white pl-4" style={sombraTarjeta}>
             {alertasInicio.length === 0 ? (

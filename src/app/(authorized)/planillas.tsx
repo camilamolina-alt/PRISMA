@@ -66,12 +66,20 @@ export default function Planillas() {
           icono={<MaterialCommunityIcons name="truck-delivery-outline" size={26} color="white" />}
           columnas="CADENA · UBICACIÓN · SECTOR · PLU · DESCRIPCIÓN · CANTIDAD · FECHA ENVÍO · LLEGADA APROX"
         />
+        <TarjetaPlanilla
+          titulo="Planilla de promociones"
+          texto="Precios, promos y eventos por cadena. Crea las tareas de los promotores"
+          endpoint="/api/importaciones/promociones"
+          colores={["#F472B6", "#DB2777"]}
+          sombra="219, 39, 119"
+          icono={<MaterialCommunityIcons name="tag-outline" size={26} color="white" />}
+          columnas="TIPO · CADENA · SKU · DESCRIPCIÓN · PRECIO NORMAL · PRECIO OFERTA · DESDE · HASTA"
+        />
       </View>
     </ScrollView>
   );
 }
 
-// Una tarjeta para elegir y subir un Excel. Se usa una vez por cada tipo de planilla.
 function TarjetaPlanilla({
   titulo,
   texto,
@@ -97,8 +105,8 @@ function TarjetaPlanilla({
   const elegirArchivo = async () => {
     const escogido = await DocumentPicker.getDocumentAsync({
       type: [
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-        "application/vnd.ms-excel", // .xls
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
       ],
     });
     if (escogido.canceled) return;

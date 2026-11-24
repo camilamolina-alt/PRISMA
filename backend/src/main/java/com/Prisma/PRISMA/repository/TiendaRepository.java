@@ -9,6 +9,5 @@ import java.util.Optional;
 public interface TiendaRepository extends JpaRepository<Tienda, Long> {
     Optional<Tienda> findByNombreIgnoreCaseAndUbicacionIgnoreCase(String nombre, String ubicacion);
 
-    // Todas las sucursales de una cadena (ej. "Ripley")
     List<Tienda> findByNombreIgnoreCase(String nombre);
 }

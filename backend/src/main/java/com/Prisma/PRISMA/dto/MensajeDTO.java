@@ -11,7 +11,8 @@ public record MensajeDTO(
     String remitente,
     String contenido,
     LocalDateTime fecha,
-    Boolean leido) {
+    Boolean leido,
+    String imagenURL) {
 
 
     //Es para que sea dinamco el mensaje
@@ -23,7 +24,8 @@ public record MensajeDTO(
                 m.getRemitente(),
                 m.getContenido(),
                 m.getFecha(),
-                m.getLeido()
+                m.getLeido(),
+                m.getImagenURL()
 
         );
     }

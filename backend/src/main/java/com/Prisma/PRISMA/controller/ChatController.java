@@ -55,7 +55,6 @@ public class ChatController {
         mensajeria.convertAndSendToUser(guardado.getReceptor(), "/queue/mensajes", dto);
         mensajeria.convertAndSendToUser(guardado.getRemitente(), "/queue/mensajes", dto);
 
-        // Aviso para el banner del que recibe. En "producto" va el correo del remitente para abrir su chat
         String nombre = usuarioRepository.findByCorreo(guardado.getRemitente())
                 .map(Usuario::getNombre).orElse(guardado.getRemitente());
         mensajeria.convertAndSendToUser(guardado.getReceptor(), "/queue/alertas", new AlertaDTO(

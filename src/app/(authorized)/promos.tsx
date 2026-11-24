@@ -31,7 +31,7 @@ export default function Promos() {
     const [tipo, setTipo] = useState<TipoTarea | null>(null);
     const [nombreTarea, setNombreTarea] = useState("");
     const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-    const [cadena, setCadena] = useState<string | null>(null); // ej. "Ripley": vale para todas sus sucursales
+    const [cadena, setCadena] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
 
     useEffect(() => {
@@ -64,7 +64,6 @@ export default function Promos() {
         }, {})
     ).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-    // Promotores que recibirán la tarea
     const destinatarios = cadena
         ? [...new Set(
             asignaciones

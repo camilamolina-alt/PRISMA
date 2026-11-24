@@ -1,4 +1,3 @@
-// Los 3 niveles posibles. TypeScript no deja usar otro texto distinto.
 export type NivelAlerta = "critico" | "retraso" | "pendiente";
 
 export type Alerta = {

@@ -1,8 +1,8 @@
 import { Feather, FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { API_URL } from "../config/api";
 import { useAlertas } from "../providers/AlertaProvider";
@@ -51,7 +51,7 @@ export default function HomePromotor() {
   // Nombre de registro para el usuario
   const [nombre, setNombre] = useState<string | null>(null);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!token) return;
 
     // 1) Nombre del promotor 
@@ -75,7 +75,7 @@ export default function HomePromotor() {
         );
       })
       .catch(() => { });
-  }, [token]);
+  }, [token]));
 
   const buscarProducto = async (sku: string) => {
     try {
@@ -125,7 +125,6 @@ export default function HomePromotor() {
       method: "PUT",
       headers: { Authorization: token ?? "" },
     })
-      // cuando el backend guardó el check, las alertas se actualizan (la tarea lista desaparece)
       .then((res) => {
         if (res.ok) recargarAlertas();
       })
@@ -313,8 +312,22 @@ export default function HomePromotor() {
         </Pressable>
 
         <View className="gap-3">
-          <Text className="text-base font-bold text-[#1B1733]">Próximas tareas</Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-base font-bold text-[#1B1733]">Próximas tareas</Text>
+            <Pressable
+              accessibilityRole="link"
+              hitSlop={10}
+              className="flex-row items-center gap-0.5"
+              onPress={() => router.push("/tareas")}
+            >
+              <Text className="text-sm font-bold text-[#5743C2]">Ver todas ({tareas.length})</Text>
+              <Feather name="chevron-right" size={16} color="#5743C2" />
+            </Pressable>
+          </View>
           <View className="rounded-2xl border border-[#E4E2EE] bg-white px-4" style={sombraTarjeta}>
+            {proximas.length === 0 && (
+              <Text className="py-5 text-center text-sm text-[#6B6787]">No tienes tareas por ahora</Text>
+            )}
             {proximas.map((t, i) => {
               const estilo = estiloTipo[t.tipo];
               return (

@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Pressable,
   StyleSheet,
@@ -17,12 +18,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Mensaje, useChat } from "../../hooks/useChat";
+import { urlFoto } from "../../lib/reportes";
 
-// "2026-10-27T14:32:10" → "14:32"
 const hora = (iso: string) =>
   new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
-// → "Hoy", "Ayer" o "25 de octubre"
 function etiquetaDia(iso: string) {
   const d = new Date(iso).toDateString();
   const hoy = new Date();
@@ -36,6 +36,14 @@ function etiquetaDia(iso: string) {
 function Burbuja({ m, mio }: { m: Mensaje; mio: boolean }) {
   const contenido = (
     <>
+      {m.imagenURL && (
+        <Image
+          source={{ uri: urlFoto(m.imagenURL) }}
+          style={s.foto}
+          resizeMode="cover"
+          accessibilityLabel="Foto del reporte"
+        />
+      )}
       <Text style={[s.texto, mio && s.textoMio]}>{m.contenido}</Text>
       <View style={s.meta}>
         <Text style={[s.hora, mio && s.horaMia]}>{hora(m.fecha)}</Text>
@@ -92,7 +100,7 @@ export default function Conversacion() {
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 8 }]}>
         <StatusBar style ="dark" />
-        <Pressable onPress={() => router.back()} hitSlop={10}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/chat"))} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color={C.tinta} />
         </Pressable>
         <View style={s.avatar}>
@@ -209,6 +217,7 @@ const s = StyleSheet.create({
     borderColor: "rgba(87,67,194,0.10)",
   },
   texto: { fontSize: 15, color: C.tinta, lineHeight: 20 },
+  foto: { width: 220, height: 220, borderRadius: 12, marginBottom: 8, backgroundColor: "#E2ECEE" },
   textoMio: { color: "#FFFFFF" },
   meta: {
     flexDirection: "row",

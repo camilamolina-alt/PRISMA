@@ -26,7 +26,7 @@ export type AlertaViva = {
   detalle: string;
   fecha: string;
   nueva: boolean;
-  correo?: string; // solo en mensajes: con quién abrir el chat
+  correo?: string;
 };
 
 type AlertasContextType = {
@@ -85,13 +85,13 @@ function tituloTarea(tipo?: string) {
   if (tipo === "precio") return "Cambio de precio";
   if (tipo === "repo") return "Reposición pendiente";
   if (tipo === "envio") return "Cambio en tu carga";
-  if (tipo === "reporte") return "Nuevo reporte de cierre";
+  if (tipo === "reporte") return "Fin de jornada";
   if (tipo === "problema") return "Nuevo reporte de problema";
   if (tipo === "mensaje") return "Nuevo mensaje";
+  if (tipo === "rol") return "Cambio de rol";
   return "Nueva tarea";
 }
 
-// Alertas que solo llegan por websocket (reportes y mensajes): recargar() no las borra
 const esVivo = (id: string) => id.startsWith("vivo-");
 
 function alertaEnvio(e: Envio): AlertaViva {
@@ -124,14 +124,13 @@ function alertaStock(tipo: "critico" | "medio", s: any, fecha: string): AlertaVi
 }
 
 export function AlertasProvider({ children }: { children: ReactNode }) {
-  const { token, rol } = useAuthSession();
+  const { token, rol, actualizarRol } = useAuthSession();
   const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaViva[]>([]);
   const [conectado, setConectado] = useState(false);
   const [banner, setBanner] = useState<AlertaViva | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Con quién tengo el chat abierto ahora (se guarda en un ref para no reconectar el websocket)
   const ruta = usePathname();
   const { correo: correoChat } = useGlobalSearchParams<{ correo?: string }>();
   const enChatCon = useRef<string | undefined>(undefined);
@@ -236,14 +235,12 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
           try {
             const d = JSON.parse(msg.body);
 
-            // Reportes y mensajes: se agregan a la lista ahí mismo
-            if (d.nivel === "reporte" || d.nivel === "problema" || d.nivel === "mensaje") {
+            if (d.nivel === "reporte" || d.nivel === "problema" || d.nivel === "mensaje" || d.nivel === "rol") {
               const esMensaje = d.nivel === "mensaje";
-              // Si ya estoy en ese chat, no molesto con el banner
               if (esMensaje && enChatCon.current === d.producto) return;
               const nueva: AlertaViva = {
                 id: `vivo-${d.nivel}-${Date.now()}`,
-                nivel: d.nivel === "problema" ? "retraso" : "pendiente",
+                nivel: d.nivel === "problema" || d.nivel === "rol" ? "retraso" : "pendiente",
                 titulo: tituloTarea(d.nivel),
                 detalle: String(d.mensaje || ""),
                 fecha: new Date().toISOString(),
@@ -252,6 +249,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
               };
               setAlertas((prev) => ordenar([nueva, ...prev]));
               mostrarBanner(nueva);
+              if (d.nivel === "rol" && d.producto) actualizarRol(d.producto);
               return;
             }
 
@@ -280,7 +278,7 @@ export function AlertasProvider({ children }: { children: ReactNode }) {
       client.deactivate();
       if (temporizador.current) clearTimeout(temporizador.current);
     };
-  }, [token, recargar, mostrarBanner]);
+  }, [token, recargar, mostrarBanner, actualizarRol]);
 
   const marcarLeida = useCallback((id: string) => {
     setAlertas((prev) => prev.map((a) => (a.id === id ? { ...a, nueva: false } : a)));

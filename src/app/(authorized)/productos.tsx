@@ -155,7 +155,6 @@ if (sku !== skuAnterior) {
 }
   const [buscadorActivo, setBuscadorActivo] = useState(false);
 
-  // Tiendas asignadas al promotor (GET /api/asignaciones/mias): salen primero
   const [misTiendas, setMisTiendas] = useState<number[]>([]);
 
   //Filtros por tienda
@@ -202,14 +201,12 @@ if (sku !== skuAnterior) {
       });
       if (!res.ok) throw new Error();
       const actualizado: Stock = await res.json();
-      // Reemplazo solo esa fila en la lista
       setDatos((prev) => prev.map((s) => (s.idStock === id ? actualizado : s)));
     } catch {
       setError("No se pudo guardar el cambio");
     }
   };
 
-  // Busca por nombre o SKU, sin importar mayúsculas
   const texto = busqueda.trim().toLowerCase();
   const filtrados = texto
     ? datos.filter(
@@ -387,12 +384,10 @@ if (sku !== skuAnterior) {
   );
 }
 
-// sin espacios para comparar (RIPLEY = ripley)
 function clave(nombre: string) {
   return nombre.trim().toLowerCase();
 }
 
-// Agrupa el stock por nombre de tienda
 function agrupar(lista: Stock[]) {
   const grupos = new Map<string, { titulo: string; data: Stock[] }>();
   for (const s of lista) {

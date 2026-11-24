@@ -10,7 +10,6 @@ export default function DocumentoFila({ doc }: { doc: Documento }) {
   const [abriendo, setAbriendo] = useState(false);
   const tipo = nombreTipo[doc.tipo] ?? doc.tipo;
 
-  // toca la fila -> baja el Excel original y lo abre con Excel/Sheets
   const abrir = async () => {
     if (!token || abriendo) return;
     setAbriendo(true);

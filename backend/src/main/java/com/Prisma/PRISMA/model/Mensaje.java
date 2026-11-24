@@ -18,6 +18,7 @@ public class Mensaje {
     @Column(nullable = false, columnDefinition = "TEXT")  //tiene que mandar en TEXT o se bugea, es para textos largos
     private String contenido;
 
+    private String imagenURL;
     private LocalDateTime fecha;
     private Boolean leido = false;
 
@@ -70,5 +71,13 @@ public class Mensaje {
     }
     public void setLeido(Boolean leido){
         this.leido = leido;
+    }
+
+    public String getImagenURL() {
+        return imagenURL;
+    }
+
+    public void setImagenURL(String imagenURL) {
+        this.imagenURL = imagenURL;
     }
 }

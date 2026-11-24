@@ -25,8 +25,8 @@ export default function HomeAdmin() {
     
     const accesos = [
         {texto: "Usuarios", icono: "users", color:"#1E3A8A", ruta: "/gestionUser"},
-        {texto: "Logistica", icono: "truck", color:"#2F5BB7"},
-        {texto: "Reportes", icono: "file-text", color:"#0E7490"},
+        {texto: "Logistica", icono: "truck", color:"#2F5BB7", ruta: "/cargas"},
+        {texto: "Catálogo", icono: "image", color:"#7C3AED", ruta: "/catalogo"},
     ];
     
     useEffect(() => {

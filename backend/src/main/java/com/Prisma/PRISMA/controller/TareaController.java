@@ -65,8 +65,6 @@ public class TareaController {
 
     }
 
-    // POST /api/tareas/cadena {nombreTarea, tipo, cadena}
-    // Crea una tarea por cada promotor asignado a cualquier sucursal de esa cadena
     @PostMapping("/cadena")
     public ResponseEntity<?> crearPorCadena(@RequestBody TareaCadena body) {
         if (body.cadena() == null || body.cadena().isBlank()) return ResponseEntity.badRequest().body("Falta la tienda");
@@ -95,7 +93,6 @@ public class TareaController {
         return ResponseEntity.ok(Map.of("creadas", creadas.size(), "promotores", promotores));
     }
 
-    // Aviso en vivo solo al promotor de la tarea (igual que el chat: /user/queue/...)
     private void avisar(Tarea tarea) {
         if (tarea.getCorreoPromotor() == null) return;
         mensajeria.convertAndSendToUser(tarea.getCorreoPromotor(), "/queue/alertas", new AlertaDTO(
@@ -122,6 +119,7 @@ public class TareaController {
     public ResponseEntity<?> check(@PathVariable Long id){
         return tareaRepository.findById(id).map(t-> {
             t.setCheckTarea((!t.isCheckTarea()));
+            t.setFechaCheck(t.isCheckTarea() ? LocalDateTime.now() : null);
             return ResponseEntity.ok(tareaRepository.save(t));
         }).orElse(ResponseEntity.notFound().build());
 

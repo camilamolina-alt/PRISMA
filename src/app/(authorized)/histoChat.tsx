@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { FlatList, Image, SafeAreaView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 
-// Estructura de datos simulada para los chats del historial
 interface ChatItem {
   id: string;
   name: string;
@@ -50,7 +49,6 @@ export default function HistoChatScreen() {
       onPress={() => router.push('/chat')}
       className="flex-row items-center p-4 border-b border-gray-100 active:bg-gray-50"
     >
-      {/* Contenedor de Avatar con Indicador de Conexión */}
       <View className="relative">
         <Image 
           source={{ uri: item.avatar }} 
@@ -61,7 +59,6 @@ export default function HistoChatScreen() {
         )}
       </View>
 
-      {/* Textos informativos de la conversación */}
       <View className="flex-1 ml-4">
         <View className="flex-row justify-between items-baseline">
           <Text className="text-base font-semibold text-gray-800">{item.name}</Text>
@@ -75,7 +72,6 @@ export default function HistoChatScreen() {
             {item.lastMessage}
           </Text>
           
-          {/* Globo de mensajes no leídos */}
           {item.unreadCount > 0 && (
             <View className="bg-blue-500 rounded-full h-5 px-1.5 justify-center items-center min-w-[20px]">
               <Text className="text-white text-xs font-bold">{item.unreadCount}</Text>
@@ -90,7 +86,6 @@ export default function HistoChatScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" />
       
-      {/* Listado del historial */}
       <FlatList
         data={MOCK_CHATS}
         keyExtractor={(item) => item.id}
