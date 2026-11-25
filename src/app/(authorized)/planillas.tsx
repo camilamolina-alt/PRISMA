@@ -13,6 +13,7 @@ const sombraTarjeta = { boxShadow: "0 4px 12px rgba(10, 85, 104, 0.08)" };
 
 export default function Planillas() {
   const insets = useSafeAreaInsets();
+  const { rol } = useAuthSession();
 
   return (
     <ScrollView className="flex-1 bg-[#EEF6F7]" contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
@@ -57,23 +58,23 @@ export default function Planillas() {
           sombra="22, 163, 74"
           icono={<MaterialCommunityIcons name="file-excel-outline" size={26} color="white" />}
         />
-        <TarjetaPlanilla
-          titulo="Planilla de envíos"
-          texto="Camiones a cada tienda y su fecha aprox. de llegada"
-          endpoint="/api/importaciones/envios"
-          colores={["#38BDF8", "#0284C7"]}
-          sombra="2, 132, 199"
-          icono={<MaterialCommunityIcons name="truck-delivery-outline" size={26} color="white" />}
-          columnas="CADENA · UBICACIÓN · SECTOR · PLU · DESCRIPCIÓN · CANTIDAD · FECHA ENVÍO · LLEGADA APROX"
-        />
+        {rol === "admin" && (
+          <TarjetaPlanilla
+            titulo="Planilla de envíos"
+            texto="Camiones a cada tienda y su fecha aprox. de llegada"
+            endpoint="/api/importaciones/envios"
+            colores={["#38BDF8", "#0284C7"]}
+            sombra="2, 132, 199"
+            icono={<MaterialCommunityIcons name="truck-delivery-outline" size={26} color="white" />}
+          />
+        )}
         <TarjetaPlanilla
           titulo="Planilla de promociones"
-          texto="Precios, promos y eventos por cadena. Crea las tareas de los promotores"
+          texto="Precios, promos y eventos por cadena"
           endpoint="/api/importaciones/promociones"
           colores={["#F472B6", "#DB2777"]}
           sombra="219, 39, 119"
           icono={<MaterialCommunityIcons name="tag-outline" size={26} color="white" />}
-          columnas="TIPO · CADENA · SKU · DESCRIPCIÓN · PRECIO NORMAL · PRECIO OFERTA · DESDE · HASTA"
         />
       </View>
     </ScrollView>

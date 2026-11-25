@@ -71,7 +71,7 @@ export default function Documentos() {
           </Pressable>
           <View className="ml-4 flex-1">
             <Text className="text-2xl font-bold text-white">Documentos</Text>
-            <Text className="text-sm text-[#D4F5F4]">Planillas y archivos de tus tiendas</Text>
+            <Text className="text-sm text-[#D4F5F4]">Planillas y archivos de las tiendas</Text>
           </View>
         </View>
       </LinearGradient>
@@ -127,7 +127,7 @@ export default function Documentos() {
             </View>
             <Text className="text-[15px] font-bold text-[#3B5760]">Aún no hay documentos</Text>
             <Text className="text-center text-sm text-[#6E8C94]">
-              Las planillas que subas aparecerán aquí
+              Las planillas estaran aquí
             </Text>
           </View>
         ) : (

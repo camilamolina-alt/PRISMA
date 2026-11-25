@@ -218,6 +218,15 @@ export default function AuthorizedLayout() {
           />
 
           <Tabs.Screen
+            name="zonasTiendas"
+            options={{
+              tabBarItemStyle: { display: "none" },
+              tabBarStyle: { display: "none" },
+              headerShown: false,
+            }}
+          />
+
+          <Tabs.Screen
             name="catalogo"
             options={{
               tabBarItemStyle: { display: "none" },

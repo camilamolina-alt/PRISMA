@@ -1,6 +1,7 @@
 import {
   aFecha,
   aIso,
+  avisarPromotores,
   cambiarEstado,
   Envio,
   EnvioDetalle,
@@ -11,6 +12,7 @@ import {
   fraseLlegada,
   leerDetalle,
   leerEnvios,
+  leerEnviosMiZona,
   leerMisEnvios,
 } from "@/lib/envios";
 import { useAuthSession } from "@/providers/AuthProvider";
@@ -21,6 +23,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -43,6 +46,21 @@ const filtros: { id: Filtro; texto: string }[] = [
   { id: "entregados", texto: "Entregados" },
 ];
 
+const ZONAS = ["todas", "norte", "centro", "sur"];
+
+const temas = {
+  admin: {
+    degradado: ["#0B1B3F", "#13285C", "#1E3A8A", "#2F5BB7"] as const,
+    acento: "#1E3A8A",
+    subtitulo: "#C9D6F2",
+  },
+  normal: {
+    degradado: ["#0A5568", "#0B7C8E", "#0EA5B0", "#3BCBC3"] as const,
+    acento: "#0A6D7D",
+    subtitulo: "#D4F5F4",
+  },
+};
+
 function pasaFiltro(envio: Envio, filtro: Filtro) {
   const estado = estadoVisible(envio);
   if (filtro === "entregados") return estado === "ENTREGADO";
@@ -53,25 +71,30 @@ function pasaFiltro(envio: Envio, filtro: Filtro) {
 export default function Cargas() {
   const insets = useSafeAreaInsets();
   const { token, rol } = useAuthSession();
-  const esSupervisor = rol === "supervisor" || rol === "admin";
+  const esAdmin = rol === "admin";
+  const esSupervisor = rol === "supervisor";
+  const tema = esAdmin ? temas.admin : temas.normal;
 
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>("activos");
+  const [zona, setZona] = useState("todas");
   const [editando, setEditando] = useState<Envio | null>(null);
 
   const cargar = useCallback(async () => {
     if (!token) return;
     setError(false);
     try {
-      setEnvios(esSupervisor ? await leerEnvios(token) : await leerMisEnvios(token));
+      if (esAdmin) setEnvios(await leerEnvios(token, zona === "todas" ? undefined : zona));
+      else if (esSupervisor) setEnvios(await leerEnviosMiZona(token));
+      else setEnvios(await leerMisEnvios(token));
     } catch {
       setError(true);
     } finally {
       setCargando(false);
     }
-  }, [token, esSupervisor]);
+  }, [token, esAdmin, esSupervisor, zona]);
 
   useFocusEffect(
     useCallback(() => {
@@ -91,7 +114,7 @@ export default function Cargas() {
       >
         {/* Header */}
         <LinearGradient
-          colors={["#0A5568", "#0B7C8E", "#0EA5B0", "#3BCBC3"]}
+          colors={tema.degradado}
           locations={[0, 0.42, 0.78, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -114,14 +137,38 @@ export default function Cargas() {
             </Pressable>
             <View className="ml-4 flex-1">
               <Text className="text-2xl font-bold text-white">Seguimiento de carga</Text>
-              <Text className="text-sm text-[#D4F5F4]">
-                {esSupervisor ? "Envíos desde bodega a tus tiendas" : "Mercadería en camino a tus tiendas"}
+              <Text className="text-sm" style={{ color: tema.subtitulo }}>
+                {esAdmin
+                  ? "Todos los envíos desde bodega"
+                  : esSupervisor
+                    ? "Envíos a las tiendas de tu zona"
+                    : "Mercadería en camino a tus tiendas"}
               </Text>
             </View>
           </View>
         </LinearGradient>
 
         <View className="-mt-6 gap-4 px-5">
+          {esAdmin && (
+            <View className="flex-row gap-2 rounded-2xl border border-[#DCEBEE] bg-white p-1.5" style={sombraTarjeta}>
+              {ZONAS.map((z) => {
+                const activa = zona === z;
+                return (
+                  <Pressable
+                    key={z}
+                    onPress={() => setZona(z)}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: activa }}
+                    className="flex-1 items-center rounded-xl px-1 py-2.5"
+                    style={activa ? { backgroundColor: tema.acento } : undefined}
+                  >
+                    <Text className={`text-[13px] font-bold capitalize ${activa ? "text-white" : "text-[#3B5760]"}`}>{z}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
           {/* Filtros */}
           <View className="flex-row gap-2 rounded-2xl border border-[#DCEBEE] bg-white p-1.5" style={sombraTarjeta}>
             {filtros.map((f) => {
@@ -132,7 +179,8 @@ export default function Cargas() {
                   onPress={() => setFiltro(f.id)}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: activo }}
-                  className={`flex-1 items-center rounded-xl px-1 py-2.5 ${activo ? "bg-[#0A6D7D]" : ""}`}
+                  className="flex-1 items-center rounded-xl px-1 py-2.5"
+                  style={activo ? { backgroundColor: tema.acento } : undefined}
                 >
                   <Text className={`text-[13px] font-bold ${activo ? "text-white" : "text-[#3B5760]"}`} numberOfLines={1}>
                     {f.texto} ({cuenta(f.id)})
@@ -142,20 +190,20 @@ export default function Cargas() {
             })}
           </View>
 
-          {esSupervisor && (
+          {esAdmin && (
             <Pressable
               onPress={() => router.push("/planillas")}
               accessibilityRole="button"
               className="flex-row items-center gap-2 self-start"
               hitSlop={8}
             >
-              <Feather name="upload-cloud" size={16} color="#0A6D7D" />
-              <Text className="text-sm font-bold text-[#0A6D7D]">Subir planilla de envíos</Text>
+              <Feather name="upload-cloud" size={16} color={tema.acento} />
+              <Text className="text-sm font-bold" style={{ color: tema.acento }}>Subir planilla de envíos</Text>
             </Pressable>
           )}
 
           {cargando ? (
-            <ActivityIndicator color="#0A6D7D" style={{ marginTop: 32 }} />
+            <ActivityIndicator color={tema.acento} style={{ marginTop: 32 }} />
           ) : error ? (
             <Vacio icono="wifi-off" titulo="No se pudieron cargar los envíos" texto="Revisa tu conexión y desliza hacia abajo para reintentar" />
           ) : visibles.length === 0 ? (
@@ -164,9 +212,11 @@ export default function Cargas() {
               titulo={envios.length === 0 ? "Aún no hay envíos" : "Nada por aquí"}
               texto={
                 envios.length === 0
-                  ? esSupervisor
+                  ? esAdmin
                     ? "Sube la planilla de envíos para ver los camiones"
-                    : "Cuando bodega mande mercadería a tus tiendas, aparecerá aquí"
+                    : esSupervisor
+                      ? "Cuando bodega mande camiones a tu zona, aparecerán aquí"
+                      : "Cuando bodega mande mercadería a tus tiendas, aparecerá aquí"
                   : "No hay envíos con este filtro"
               }
             />
@@ -175,8 +225,10 @@ export default function Cargas() {
               <TarjetaEnvio
                 key={envio.idEnvio}
                 envio={envio}
+                esAdmin={esAdmin}
                 esSupervisor={esSupervisor}
                 onCambiar={() => setEditando(envio)}
+                onActualizado={(nuevo) => setEnvios((prev) => prev.map((e) => (e.idEnvio === nuevo.idEnvio ? nuevo : e)))}
               />
             ))
           )}
@@ -209,7 +261,19 @@ function Vacio({ icono, titulo, texto }: { icono: "truck" | "wifi-off"; titulo: 
   );
 }
 
-function TarjetaEnvio({ envio, esSupervisor, onCambiar }: { envio: Envio; esSupervisor: boolean; onCambiar: () => void }) {
+function TarjetaEnvio({
+  envio,
+  esAdmin,
+  esSupervisor,
+  onCambiar,
+  onActualizado,
+}: {
+  envio: Envio;
+  esAdmin: boolean;
+  esSupervisor: boolean;
+  onCambiar: () => void;
+  onActualizado: (nuevo: Envio) => void;
+}) {
   const { token } = useAuthSession();
   const estado = estadoVisible(envio);
   const estilo = estiloEstado[estado];
@@ -217,6 +281,20 @@ function TarjetaEnvio({ envio, esSupervisor, onCambiar }: { envio: Envio; esSupe
 
   const [abierto, setAbierto] = useState(false);
   const [detalle, setDetalle] = useState<EnvioDetalle[] | null>(null);
+  const [avisando, setAvisando] = useState(false);
+
+  const avisar = async () => {
+    if (!token) return;
+    setAvisando(true);
+    try {
+      onActualizado(await avisarPromotores(envio.idEnvio, token));
+    } catch {
+      if (Platform.OS === "web") window.alert("No se pudo avisar a los promotores");
+      else Alert.alert("Atención", "No se pudo avisar a los promotores");
+    } finally {
+      setAvisando(false);
+    }
+  };
 
   const verProductos = async () => {
     setAbierto((a) => !a);
@@ -300,13 +378,41 @@ function TarjetaEnvio({ envio, esSupervisor, onCambiar }: { envio: Envio; esSupe
         </View>
       )}
 
-      {esSupervisor && envio.estado !== "ENTREGADO" && (
+      {(esAdmin || esSupervisor) && (
+        <View className="flex-row items-center gap-1.5">
+          <Feather name={envio.avisado ? "check-circle" : "bell-off"} size={14} color={envio.avisado ? "#15803D" : "#B45309"} />
+          <Text className="text-xs font-semibold" style={{ color: envio.avisado ? "#15803D" : "#B45309" }}>
+            {envio.avisado ? "Promotores avisados" : "Sin avisar a los promotores"}
+          </Text>
+        </View>
+      )}
+
+      {esSupervisor && !envio.avisado && (
+        <Pressable
+          onPress={avisar}
+          disabled={avisando}
+          accessibilityRole="button"
+          className="h-12 flex-row items-center justify-center gap-2 rounded-full bg-[#0A6D7D]"
+          style={{ opacity: avisando ? 0.6 : 1 }}
+        >
+          {avisando ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Feather name="send" size={16} color="white" />
+              <Text className="text-[15px] font-bold text-white">Avisar a mis promotores</Text>
+            </>
+          )}
+        </Pressable>
+      )}
+
+      {esAdmin && envio.estado !== "ENTREGADO" && (
         <Pressable
           onPress={onCambiar}
           accessibilityRole="button"
-          className="h-12 items-center justify-center rounded-full border border-[#A9DCDD] bg-[#E3F5F5]"
+          className="h-12 items-center justify-center rounded-full border border-[#C9D6F2] bg-[#E8EEFA]"
         >
-          <Text className="text-[15px] font-bold text-[#0A5568]">Actualizar estado</Text>
+          <Text className="text-[15px] font-bold text-[#13285C]">Actualizar estado</Text>
         </Pressable>
       )}
     </View>

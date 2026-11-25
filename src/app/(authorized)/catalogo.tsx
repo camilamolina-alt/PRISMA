@@ -36,7 +36,7 @@ export default function Catalogo() {
           </Pressable>
           <View className="ml-4 flex-1">
             <Text className="text-2xl font-bold text-white">Catálogo</Text>
-            <Text className="text-sm text-[#E3EAF8]">Fotos de los productos para toda la app</Text>
+            <Text className="text-sm text-[#E3EAF8]">Fotos de los productos</Text>
           </View>
         </View>
       </LinearGradient>

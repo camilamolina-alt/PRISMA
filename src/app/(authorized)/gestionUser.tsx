@@ -15,6 +15,7 @@ export default function GestionUserer() {
     const [correo, setCorreo] = useState("");
     const [rol, setRol] = useState("promotor");
     const [pass, setPass] = useState("");
+    const [filtroR, setFiltroR] = useState("todos");
 
     const eliminarWeb = (usuario: any) => {
         if (!token) return;
@@ -186,6 +187,9 @@ export default function GestionUserer() {
             .catch(() => aviso("No se puede cambiar"))
     };
 
+    const filtra = usuarios.filter((u) => (u.rol === filtroR) || (filtroR === "todos"));
+
+
 
     return (
 
@@ -222,6 +226,8 @@ export default function GestionUserer() {
 
                     />
 
+                
+
                     {/* PARA SELECCIONAR EL ROL DEL USUARIO */}
                     <View className="flex-row gap-2">
                         {["admin", "supervisor", "promotor"].map((r) => (
@@ -240,7 +246,20 @@ export default function GestionUserer() {
 
                 </View>
 
-                {usuarios.map(usuario => (
+                 {/*FILTRO */}
+                    <View className="flex-row gap-2 mt-3">
+                        {["todos", "admin", "supervisor", "promotor"].map((r) => (
+                            <Pressable
+                                key={r}
+                                onPress={() => setFiltroR(r)}
+                                className={`flex-1 items-center rounded-lg border px-2 py-2 ${filtroR === r ? "border-[#13285C] bg-[#13285C]" : "border-[#DCE3F0] bg-white"}`}
+                            >
+                                <Text className={`font-semibold capitalize ${filtroR === r ? "text-white" : "text-[#0F1B33]"}`}>{r}</Text>
+                            </Pressable>
+                        ))}
+                    </View>
+
+                {filtra.map(usuario => (
                     <View key={usuario.id} className="mt-3 rounded-2xl border border-[#E3EAF8] bg-white p-4 shadow-md">
                         <View className="flex-row items-center justify-between">
                             <View>

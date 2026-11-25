@@ -12,7 +12,10 @@ type Tienda = {
   departamento: string;
   ubicacion: string;
   nombre: string | null;
+  zona: string | null;
 };
+
+const ZONAS = ["todas", "norte", "centro", "sur"];
 
 export default function Tiendas() {
   const { token } = useAuthSession();
@@ -22,6 +25,7 @@ export default function Tiendas() {
   const [error, setError] = useState<string | null>(null);
   const [misTiendas, setMisTiendas] = useState<number[]>([]);
   const [verTodas, setVerTodas] = useState(false);
+  const [zona, setZona] = useState("todas");
 
   useEffect(() => {
     fetch(`${API_URL}/api/tiendas`, {
@@ -48,8 +52,9 @@ export default function Tiendas() {
   
   const tengoTiendas = misTiendas.length > 0;
   const esMia = (t: Tienda) => misTiendas.includes(t.idTienda);
+  const enZona = (t: Tienda) => zona === "todas" || t.zona === zona;
   const visibles = !tengoTiendas || verTodas
-    ? [...tiendas].sort((a, b) => Number(esMia(b)) - Number(esMia(a))) // las mías arriba
+    ? tiendas.filter(enZona).sort((a, b) => Number(esMia(b)) - Number(esMia(a))) // las mías arriba
     : tiendas.filter(esMia);
 
   if (cargando) return <ActivityIndicator style={{ flex: 1, backgroundColor: "#F5F4FB" }} color="#5743C2" size="large" />;
@@ -90,7 +95,7 @@ export default function Tiendas() {
         >
           {[
             { valor: false, texto: `Mis tiendas (${misTiendas.length})` },
-            { valor: true, texto: `Todas (${tiendas.length})` },
+            { valor: true, texto: `Todas las tiendas (${tiendas.length})` },
           ].map((op) => {
             const activo = verTodas === op.valor;
             return (
@@ -116,13 +121,42 @@ export default function Tiendas() {
         </View>
       )}
 
+      {(!tengoTiendas || verTodas) && (
+        <View style={{ flexDirection: "row", gap: 8, marginHorizontal: 16, marginTop: 12 }}>
+          {ZONAS.map((z) => {
+            const activa = zona === z;
+            return (
+              <Pressable
+                key={z}
+                onPress={() => setZona(z)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activa }}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: activa ? "#5743C2" : "#E4E2EE",
+                  backgroundColor: activa ? "#5743C2" : "#fff",
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "700", textTransform: "capitalize", color: activa ? "#fff" : "#6B6787" }}>
+                  {z}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
       <FlatList
         data={visibles}
         contentContainerStyle={{ padding: 16 }}
         keyExtractor={(t) => String(t.idTienda)}
         ListEmptyComponent={
           <Text style={{ color: "#6B6787", fontSize: 15, textAlign: "center", marginTop: 40 }}>
-            No hay tiendas todavía
+            {tiendas.length === 0 ? "No hay tiendas todavía" : "No hay tiendas en esta zona"}
           </Text>
         }
         renderItem={({ item }) => (
