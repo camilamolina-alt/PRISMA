@@ -1,89 +1,118 @@
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, Text, View } from "react-native";
 import { Alerta, NivelAlerta } from "../data/alertas";
 
-// Un "diccionario" de estilos por nivel. Las clases van COMPLETAS (no armadas
-// por pedazos): Tailwind solo genera las que ve escritas tal cual en el código.
+
 const estilos: Record<
   NivelAlerta,
   {
     etiqueta: string;
-    fondo: string;
-    borde: string;
-    barra: string;
-    pill: string;
+    gradiente: [string, string];
+    sombra: string;
+    fondoPill: string;
     textoPill: string;
-    tiempo: string;
   }
 > = {
   critico: {
-    etiqueta: "CRÍTICO",
-    fondo: "bg-red-50",
-    borde: "border-red-200",
-    barra: "bg-red-500",
-    pill: "bg-red-100",
-    textoPill: "text-red-600",
-    tiempo: "text-red-600",
+    etiqueta: "Crítica",
+    gradiente: ["#FF6B6B", "#E02F3F"],
+    sombra: "224, 47, 63",
+    fondoPill: "#FDE2E4",
+    textoPill: "#A3161F",
   },
   retraso: {
-    etiqueta: "RETRASO",
-    fondo: "bg-yellow-50",
-    borde: "border-yellow-200",
-    barra: "bg-yellow-500",
-    pill: "bg-yellow-100",
-    textoPill: "text-yellow-700",
-    tiempo: "text-yellow-700",
+    etiqueta: "Atención",
+    gradiente: ["#FFB547", "#F07C00"],
+    sombra: "240, 124, 0",
+    fondoPill: "#FFF1DC",
+    textoPill: "#8A4B00",
   },
   pendiente: {
-    etiqueta: "PENDIENTE",
-    fondo: "bg-blue-50",
-    borde: "border-blue-200",
-    barra: "bg-blue-500",
-    pill: "bg-blue-100",
-    textoPill: "text-blue-600",
-    tiempo: "text-blue-600",
+    etiqueta: "Aviso",
+
+    gradiente: ["#2DD4BF", "#0D9488"],
+    sombra: "13, 148, 136",
+    fondoPill: "#DDF5F3",
+    textoPill: "#075A66",
   },
 };
+
+function IconoNivel({ nivel }: { nivel: NivelAlerta }) {
+  if (nivel === "critico") return <Ionicons name="warning-outline" size={22} color="white" />;
+  if (nivel === "retraso") return <MaterialCommunityIcons name="truck-fast-outline" size={22} color="white" />;
+  return <Feather name="clipboard" size={20} color="white" />;
+}
+
+
+type TemaTarjeta = { borde: string; tinta: string; gris: string; sombra: string };
+const temaBase: TemaTarjeta = { borde: "#E4E2EE", tinta: "#1B1733", gris: "#6B6787", sombra: "70, 54, 168" };
 
 type Props = {
   alerta: Alerta;
   onPress?: () => void;
+  destacada?: boolean; // la critica
+  tema?: TemaTarjeta;
 };
 
-export default function AlertaCard({ alerta, onPress }: Props) {
+export default function AlertaCard({ alerta, onPress, destacada = false, tema = temaBase }: Props) {
   const e = estilos[alerta.nivel];
 
   return (
     <Pressable
-      onPress={onPress}
-      className={`mb-3 flex-row overflow-hidden rounded-2xl border ${e.fondo} ${e.borde} ${
-        alerta.nueva ? "" : "opacity-60"
+      accessibilityRole="button"
+      accessibilityLabel={`${e.etiqueta}: ${alerta.titulo}, ${alerta.detalle}, ${alerta.hace}${
+        alerta.nueva ? ", nueva" : ""
       }`}
+      onPress={onPress}
+      className={`mb-3 flex-row items-center gap-3 rounded-2xl bg-white p-3.5 active:opacity-80 ${
+        destacada ? "border-2 border-[#F5A3A3]" : "border"
+      }`}
+      style={
+        destacada
+          ? { boxShadow: "0 8px 20px rgba(196, 32, 47, 0.16)" }
+          : { borderColor: tema.borde, boxShadow: `0 4px 12px rgba(${tema.sombra}, 0.08)` }
+      }
     >
-      {/* Barra de color del costado */}
-      <View className={`w-1.5 ${e.barra}`} />
 
-      <View className="flex-1 p-3">
-        <View className="mb-1 flex-row items-center">
-          <View className={`rounded px-2 py-0.5 ${e.pill}`}>
-            <Text className={`text-xs font-bold ${e.textoPill}`}>
+      <LinearGradient
+        colors={e.gradiente}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+          alerta.nueva ? { boxShadow: `0 4px 10px rgba(${e.sombra}, 0.3)` } : { opacity: 0.55 },
+        ]}
+      >
+        <IconoNivel nivel={alerta.nivel} />
+      </LinearGradient>
+
+      <View className="flex-1 gap-1">
+        <View className="flex-row items-center gap-2">
+          <View className="rounded-lg px-2 py-0.5" style={{ backgroundColor: e.fondoPill }}>
+            <Text className="text-xs font-bold" style={{ color: e.textoPill }}>
               {e.etiqueta}
             </Text>
           </View>
+          <Text className="text-xs" style={{ color: tema.gris }}>
+            {alerta.hace}
+          </Text>
         </View>
 
-        <Text className="text-base font-bold text-gray-900">
+        <Text
+          className={`text-[15px] ${alerta.nueva ? "font-bold" : "font-semibold"}`}
+          style={{ color: alerta.nueva ? tema.tinta : tema.gris }}
+        >
           {alerta.titulo}
         </Text>
-
-        <Text className="mt-1 text-xs text-gray-500">
-          {alerta.detalle} ·{" "}
-          <Text className={`font-bold ${e.tiempo}`}>{alerta.hace}</Text>
+        <Text className="text-sm" style={{ color: tema.gris }}>
+          {alerta.detalle}
         </Text>
       </View>
 
-      <View className="justify-center pr-3">
-        <Text className="text-2xl text-gray-400">›</Text>
-      </View>
+      
+      {alerta.nueva && <View className="h-2.5 w-2.5 rounded-full bg-[#F03E4E]" />}
+      <Feather name="chevron-right" size={22} color={destacada ? "#A3161F" : tema.gris} />
     </Pressable>
   );
 }

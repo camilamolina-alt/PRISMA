@@ -1,9 +1,630 @@
-import { Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  SectionList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { API_URL } from "../../config/api";
+import { useAuthSession } from "../../providers/AuthProvider";
+import { colorMensajes as C, colorStock } from "../../theme/colores";
+import {Image} from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
+import ProductoSupervisor from "../../components/ProductoSupervisor";
 
-export default function Productos() {
+type Stock = {
+  idStock: number;
+  producto: { sku: string; nombre: string; tipo?: string, idProducto: number, imageUrl?: string };
+  tienda: { idTienda: number; nombre: string; departamento: string; ubicacion: string };
+  cant_sala: number | null;
+  cant_enviada: number | null;
+  stock_critico: number | null;
+};
+
+type EstadoStock = keyof typeof colorStock;
+
+//DEGRADADOOO
+const GRADIENTE_HEADER = ["#4636A8", "#5743C2", "#4F6FD0", "#3F96C4"] as const;
+
+//Los estados van rotando segun la cantidaa de stocks que existan, el estandar estipulado va a ser de 6
+//No cambiar el ordeeen, o se sobreponen los optimos conn el critico
+function GenEstados(sala: number | null, enviada:number |null): EstadoStock{
+  if (sala == null || enviada == null || enviada === 0) return "bajo";
+  if (sala < enviada / 2) return "critico";
+  if (sala < enviada ) return "bajo";
+  return "optimo";
+}
+
+function StockItem({
+  item,
+  estado,
+  esSupervisor,
+  onGuardar,
+}: {
+  item: Stock;
+  estado: EstadoStock;
+  esSupervisor: boolean;
+  onGuardar: (id: number, cantidad: number) => Promise<void>;
+}) {
+  // Cada quien edita su propia cantidad
+  const actual = esSupervisor ? item.cant_enviada : item.cant_sala;
+  const [valor, setValor] = useState(actual?.toString() ?? "");
+  const [guardando, setGuardando] = useState(false);
+
+  const hayDiferencia =
+    item.cant_sala != null &&
+    item.cant_enviada != null &&
+    item.cant_sala !== item.cant_enviada;
+
+  const color = colorStock[estado];
+
+  const guardar = async () => {
+    const n = parseInt(valor, 10);
+    if (Number.isNaN(n) || n < 0) return;
+    setGuardando(true);
+    await onGuardar(item.idStock, n);
+    setGuardando(false);
+  };
+
   return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text className="text-xl font-bold text-blue-500">Productos</Text>
+    <View style={[styles.card, { borderLeftColor: color.fuerte }]}>
+      <View style={styles.cabecera}>
+        {item.producto.imageUrl ? (
+          <Image
+            source={{ uri: `${API_URL}${item.producto.imageUrl}` }}
+            style={styles.foto}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={styles.foto}>
+            <Ionicons name="camera-outline" size={28} color={C.niebla} />
+          </View>
+        )}
+
+        <View style={styles.info}>
+          <Text style={styles.nombre} numberOfLines={2}>{item.producto.nombre}</Text>
+          <Text style={styles.sku}>{item.producto.sku}</Text>
+          <Text style={styles.sku}>{item.tienda.ubicacion}</Text>
+
+          <View style={styles.unidades}>
+            <Text style={styles.unidadesNumero}>{item.cant_sala ?? "—"}</Text>
+            <Text style={styles.unidadesTexto}>unidades en sala</Text>
+          </View>
+
+          <View style={[styles.badge, { backgroundColor: color.fondo }]}>
+            <View style={[styles.badgePunto, { backgroundColor: color.fuerte }]} />
+            <Text style={[styles.badgeTexto, { color: color.fuerte }]}>{color.texto}</Text>
+          </View>
+        </View>
+      </View>
+
+      {esSupervisor && hayDiferencia && (
+        <Text style={styles.avisoDiferencia}>
+          Planilla dice {item.cant_enviada}, sala tiene {item.cant_sala}
+        </Text>
+      )}
+
+      <View style={styles.conteo}>
+        <TextInput
+          style={styles.input}
+          value={valor}
+          onChangeText={setValor}
+          keyboardType="numeric"
+          placeholder={esSupervisor ? "Cantidad planilla" : "Cantidad en sala"}
+          placeholderTextColor={C.niebla}
+        />
+        <TouchableOpacity style={styles.boton} onPress={guardar} disabled={guardando}>
+          <Text style={styles.botonTexto}>{guardando ? "Guardando..." : "Guardar"}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
+
+
+export default function Productos() {
+  const { rol } = useAuthSession();
+  return rol === "supervisor" ? <ProductoSupervisor /> : <ProductosPromotor />;
+}
+
+function ProductosPromotor() {
+const { token, rol } = useAuthSession();
+  const insets = useSafeAreaInsets();
+  const esSupervisor = rol === "supervisor";
+
+  const [datos, setDatos] = useState<Stock[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+const { sku } = useLocalSearchParams<{ sku?: string }>();
+const [busqueda, setBusqueda] = useState(sku ?? "");
+const [skuAnterior, setSkuAnterior] = useState(sku);
+
+if (sku !== skuAnterior) {
+  setSkuAnterior(sku);
+  if (sku) setBusqueda(sku);
+}
+  const [buscadorActivo, setBuscadorActivo] = useState(false);
+
+  const [misTiendas, setMisTiendas] = useState<number[]>([]);
+
+  //Filtros por tienda
+  const [filtroTienda, setFiltroTienda] = useState<string>("mias");
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
+  const cargar = useCallback(async () => {
+    try {
+      setError(null);
+      const res = await fetch(`${API_URL}/api/stock`, {
+        headers: { Authorization: token ?? "" },
+      });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      setDatos(await res.json());
+
+      const resAsig = await fetch(`${API_URL}/api/asignaciones/mias`, {
+        headers: { Authorization: token ?? "" },
+      });
+      if (resAsig.ok) {
+        const asignaciones: { tienda: { idTienda: number } }[] = await resAsig.json();
+        setMisTiendas(asignaciones.map((a) => a.tienda.idTienda));
+      }
+    } catch (e) {
+      setError("No se pudo cargar el stock");
+    } finally {
+      setCargando(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  const guardar = async (id: number, cantidad: number) => {
+    const ruta = esSupervisor ? "planilla" : "sala";
+    try {
+      const res = await fetch(`${API_URL}/api/stock/${id}/${ruta}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ?? "",
+        },
+        body: JSON.stringify({ cantidad }),
+      });
+      if (!res.ok) throw new Error();
+      const actualizado: Stock = await res.json();
+      setDatos((prev) => prev.map((s) => (s.idStock === id ? actualizado : s)));
+    } catch {
+      setError("No se pudo guardar el cambio");
+    }
+  };
+
+  const texto = busqueda.trim().toLowerCase();
+  const filtrados = texto
+    ? datos.filter(
+        (s) =>
+          s.producto.nombre.toLowerCase().includes(texto) ||
+          s.producto.sku.toLowerCase().includes(texto)
+      )
+    : datos;
+
+
+  const tengoTiendas = misTiendas.length > 0;
+  const esMia = (s: Stock) => !tengoTiendas || misTiendas.includes(s.tienda.idTienda);
+
+
+  const misNombres = new Set(datos.filter(esMia).map((s) => clave(s.tienda.nombre)));
+  const otrasTiendas = [...new Map(datos.map((s) => [clave(s.tienda.nombre), s.tienda.nombre.trim()])).entries()]
+    .filter(([k]) => !misNombres.has(k))
+    .sort((x, y) => x[1].localeCompare(y[1]));
+
+  const visibles =
+    filtroTienda === "mias" ? filtrados.filter(esMia) : filtrados.filter((s) => clave(s.tienda.nombre) === filtroTienda);
+  const secciones = agrupar(visibles);
+  const nombreFiltro = otrasTiendas.find(([k]) => k === filtroTienda)?.[1];
+
+  const elegir = (valor: string) => {
+    setFiltroTienda(valor);
+    setMenuAbierto(false);
+  };
+
+  if (cargando) return <ActivityIndicator style={{ marginTop: 40 }} color={C.prisma} />;
+
+  return (
+    <View style={styles.contenedor}>
+      <StatusBar style="light" />
+
+      <LinearGradient
+        colors={GRADIENTE_HEADER}
+        locations={[0, 0.45, 0.8, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 16 }]}
+      >
+        <Text style={styles.titulo}>Productos</Text>
+        <Text style={styles.subtitulo}>
+          {datos.length} {datos.length === 1 ? "producto" : "productos"} en sala
+        </Text>
+      </LinearGradient>
+
+      <View style={[styles.barra, { zIndex: 20, elevation: 20 }]}>
+        <View style={[styles.buscador, buscadorActivo && styles.buscadorActivo]}>
+          <Ionicons name="search" size={18} color={buscadorActivo ? C.prisma : C.niebla} />
+          <TextInput
+            style={styles.buscadorInput}
+            value={busqueda}
+            onChangeText={setBusqueda}
+            onFocus={() => setBuscadorActivo(true)}
+            onBlur={() => setBuscadorActivo(false)}
+            placeholder="Buscar producto o SKU"
+            placeholderTextColor={C.niebla}
+            autoCorrect={false}
+          />
+          {busqueda.length > 0 && (
+            <Pressable onPress={() => setBusqueda("")} hitSlop={10}>
+              <Ionicons name="close-circle" size={18} color={C.niebla} />
+            </Pressable>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.filtrar, (menuAbierto || filtroTienda !== "mias") && styles.filtrarActivo]}
+          activeOpacity={0.8}
+          onPress={() => setMenuAbierto((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel="Elegir tienda"
+          accessibilityState={{ expanded: menuAbierto }}
+        >
+          <Ionicons
+            name="storefront-outline"
+            size={20}
+            color={menuAbierto || filtroTienda !== "mias" ? "#fff" : C.prisma}
+          />
+        </TouchableOpacity>
+
+        {menuAbierto && (
+          <View style={styles.menu}>
+            <OpcionMenu
+              texto={tengoTiendas ? "Mis tiendas" : "Todas las tiendas"}
+              icono="star"
+              activo={filtroTienda === "mias"}
+              onPress={() => elegir("mias")}
+            />
+            {otrasTiendas.length > 0 && tengoTiendas && (
+              <>
+                <View style={styles.menuLinea} />
+                <Text style={styles.menuTitulo}>Otras tiendas</Text>
+                <ScrollView style={{ maxHeight: 260 }}>
+                  {otrasTiendas.map(([k, nombre]) => (
+                    <OpcionMenu
+                      key={k}
+                      texto={nombre}
+                      activo={filtroTienda === k}
+                      onPress={() => elegir(k)}
+                    />
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* menu desde afuera */}
+      {menuAbierto && (
+        <Pressable
+          style={[StyleSheet.absoluteFill, { zIndex: 10 }]}
+          onPress={() => setMenuAbierto(false)}
+          accessibilityLabel="Cerrar menú de tiendas"
+        />
+      )}
+
+
+      {filtroTienda !== "mias" && nombreFiltro && (
+        <View style={styles.viendo}>
+          <Text style={styles.viendoTexto}>
+            Viendo <Text style={{ fontWeight: "700" }}>{nombreFiltro}</Text>
+          </Text>
+          <Pressable onPress={() => setFiltroTienda("mias")} hitSlop={10} accessibilityLabel="Volver a mis tiendas">
+            <Ionicons name="close-circle" size={18} color={C.prisma} />
+          </Pressable>
+        </View>
+      )}
+
+      <SectionList
+        sections={secciones}
+        keyExtractor={(s) => s.idStock.toString()}
+        contentContainerStyle={styles.lista}
+        keyboardShouldPersistTaps="handled"
+        stickySectionHeadersEnabled={false}
+        ListHeaderComponent={error ? <Text style={[styles.error, { marginTop: 16 }]}>{error}</Text> : undefined}
+        renderSectionHeader={({ section }) => (
+          <View style={[styles.cajaArriba, section === secciones[0] && { marginTop: 18 }]}>
+          <View style={styles.tiendaFila}>
+            {filtroTienda === "mias" && <Ionicons name="star" size={15} color={C.prisma} />}
+            <Text style={styles.seccion} numberOfLines={1}>
+              {section.titulo}
+            </Text>
+            <Text style={styles.tiendaCuenta}>{section.data.length}</Text>
+          </View>
+          </View>
+        )}
+
+        renderSectionFooter={() => <View style={styles.cajaAbajo} />}
+        renderItem={({ item }) => (
+          <View style={styles.cajaMedio}>
+            <StockItem
+              item={item}
+              estado={GenEstados(item.cant_sala, item.cant_enviada)}
+              esSupervisor={esSupervisor}
+              onGuardar={guardar}
+            />
+          </View>
+        )}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={cargar} tintColor={C.prisma} />}
+        ListEmptyComponent={
+          <Text style={styles.vacio}>
+            {texto
+              ? `Ningún producto coincide con "${busqueda}"`
+              : filtroTienda === "mias" && tengoTiendas
+                ? "Tus tiendas todavía no tienen productos"
+                : "Todavía no hay productos en sala"}
+          </Text>
+        }
+      />
+    </View>
+  );
+}
+
+function clave(nombre: string) {
+  return nombre.trim().toLowerCase();
+}
+
+function agrupar(lista: Stock[]) {
+  const grupos = new Map<string, { titulo: string; data: Stock[] }>();
+  for (const s of lista) {
+    const k = clave(s.tienda.nombre);
+    const g = grupos.get(k) ?? { titulo: s.tienda.nombre.trim(), data: [] };
+    g.data.push(s);
+    grupos.set(k, g);
+  }
+  return [...grupos.values()];
+}
+
+function OpcionMenu({
+  texto,
+  icono,
+  activo,
+  onPress,
+}: {
+  texto: string;
+  icono?: keyof typeof Ionicons.glyphMap; // solo las mias se destacan
+  activo: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.opcion, (activo || pressed) && { backgroundColor: C.fondo }]}
+      accessibilityRole="menuitem"
+      accessibilityState={{ selected: activo }}
+    >
+      {icono && <Ionicons name={icono} size={16} color={C.prisma} />}
+      <Text style={[styles.opcionTexto, activo && { fontWeight: "700", color: C.prisma }]} numberOfLines={1}>
+        {texto}
+      </Text>
+      {activo && <Ionicons name="checkmark" size={18} color={C.prisma} />}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  contenedor: { flex: 1, backgroundColor: C.fondo },
+  lista: { paddingHorizontal: 16, paddingBottom: 32 },
+
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 44,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  titulo: { fontSize: 26, fontWeight: "800", color: "#fff" },
+  subtitulo: { fontSize: 14, color: C.lila, marginTop: 2 },
+
+  barra: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    marginTop: -26,
+  },
+
+  buscador: {
+    flex: 1,
+    height: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: C.borde,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+  },
+  buscadorActivo: { borderColor: C.prisma },
+  buscadorInput: { flex: 1, fontSize: 15, color: C.tinta, paddingVertical: 0 },
+
+  filtrar: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: C.borde,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filtrarActivo: { backgroundColor: C.prisma, borderColor: C.prisma },
+
+  seccion: { flexShrink: 1, fontSize: 16, fontWeight: "700", color: C.tinta },
+
+  cajaArriba: {
+    marginTop: 24,
+    backgroundColor: "#FBFAFE",
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: "#E4E2EE",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+  },
+  cajaMedio: {
+    backgroundColor: "#FBFAFE",
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "#E4E2EE",
+    paddingHorizontal: 12,
+  },
+  cajaAbajo: {
+    height: 4,
+    backgroundColor: "#FBFAFE",
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: "#E4E2EE",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+
+  tiendaFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingBottom: 12,
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEAF4",
+  },
+  tiendaCuenta: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: C.prisma,
+    backgroundColor: C.lila,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
+  menu: {
+    position: "absolute",
+    top: 58,
+    right: 16,
+    width: 240,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.borde,
+    paddingVertical: 6,
+    boxShadow: "0 10px 24px rgba(27, 23, 51, 0.16)",
+    elevation: 12,
+  },
+  menuLinea: { height: 1, backgroundColor: C.borde, marginVertical: 6 },
+  menuTitulo: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: C.niebla,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  opcion: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  opcionTexto: { flex: 1, fontSize: 15, color: C.tinta },
+
+  viendo: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    marginTop: 12,
+    marginHorizontal: 16,
+    backgroundColor: C.lila,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  viendoTexto: { fontSize: 13, color: C.tinta },
+  error: { color: colorStock.critico.fuerte, marginBottom: 12 },
+  vacio: { textAlign: "center", color: C.niebla, marginTop: 32 },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.borde,
+    borderLeftWidth: 5,
+    padding: 12,
+    marginBottom: 14,
+  },
+  cabecera: { flexDirection: "row", gap: 14 },
+  foto: {
+    width: 104,
+    height: 136,
+    borderRadius: 10,
+    backgroundColor: C.lila,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  info: { flex: 1 },
+  nombre: { fontSize: 16, fontWeight: "700", color: C.tinta, marginBottom: 4 },
+  sku: { fontSize: 13, color: C.niebla, marginTop: 1 },
+
+  unidades: { flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: "auto" },
+  unidadesNumero: { fontSize: 24, fontWeight: "800", color: C.tinta },
+  unidadesTexto: { fontSize: 13, color: C.niebla },
+
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 6,
+  },
+  badgePunto: { width: 7, height: 7, borderRadius: 4 },
+  badgeTexto: { fontSize: 12, fontWeight: "700" },
+
+  avisoDiferencia: { color: colorStock.bajo.fuerte, fontSize: 13, marginTop: 10 },
+
+  conteo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.borde,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: C.borde,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: C.tinta,
+    backgroundColor: C.fondo,
+  },
+  boton: { backgroundColor: C.prisma, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
+  botonTexto: { color: "#fff", fontWeight: "600" },
+});

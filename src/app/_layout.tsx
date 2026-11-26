@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import AuthProvider, { useAuthSession } from "../providers/AuthProvider";
+import { AlertasProvider } from "../providers/AlertaProvider"; 
 
 SplashScreen.preventAutoHideAsync();
 
@@ -12,7 +13,7 @@ SplashScreen.setOptions({
   fade: true,
 });
 
-// Tiempo mínimo que se ve la pantalla de carga (en milisegundos)
+
 const SPLASH_MIN_MS = 1500;
 
 // Tiene que ir fuera del layout principal o no funciona
@@ -20,7 +21,7 @@ function RootNavigator() {
   const { isLoading } = useAuthSession();
   const [minTimePassed, setMinTimePassed] = useState(false);
 
-  // Cuenta el tiempo mínimo; el return limpia el timer si el componente se desmonta
+
   useEffect(() => {
     const timer = setTimeout(() => setMinTimePassed(true), SPLASH_MIN_MS);
     return () => clearTimeout(timer);
@@ -32,7 +33,7 @@ function RootNavigator() {
     }
   }, [isLoading]);
 
-  // Mientras carga la sesión O no pasa el tiempo mínimo: pantalla de carga
+
   if (isLoading || !minTimePassed) {
     return (
       <View
@@ -50,7 +51,12 @@ function RootNavigator() {
     );
   }
 
-  return <Slot />;
+
+  return (
+    <AlertasProvider>
+      <Slot />
+    </AlertasProvider>
+  );
 }
 
 export default function RootLayout() {
